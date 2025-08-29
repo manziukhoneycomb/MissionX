@@ -1,0 +1,151 @@
+trigger: none
+
+pool:
+    vmImage: 'ubuntu-latest'
+
+variables:
+    - group: test-vg
+    - name: awsRegion
+      value: 'us-east-1'
+    - name: ciPipelineName
+      value: 'test-ci'
+    - name: serviceConnectionName
+      value: 'ai-template-service-connection'
+    - name: prefix
+      value: 'aitemplate'
+    - name: environment
+      value: 'test'
+    - name: apiRepositoryUrl
+      value: '$(AWS_ACCOUNT_ID).dkr.ecr.$(awsRegion).amazonaws.com/$(prefix)-api-$(environment)'
+    - name: clientRepositoryUrl
+      value: '$(AWS_ACCOUNT_ID).dkr.ecr.$(awsRegion).amazonaws.com/$(prefix)-client-$(environment)'
+    - name: landingRepositoryUrl
+      value: '$(AWS_ACCOUNT_ID).dkr.ecr.$(awsRegion).amazonaws.com/$(prefix)-landing-$(environment)'
+    - name: clusterName
+      value: '$(prefix)-cluster-$(environment)'
+    - name: apiServiceName
+      value: '$(prefix)-api-service-$(environment)'
+    - name: clientServiceName
+      value: '$(prefix)-client-service-$(environment)'
+    - name: landingServiceName
+      value: '$(prefix)-landing-service-$(environment)'
+
+stages:
+    - stage: PushImages
+      displayName: 'Push Images to AWS ECR'
+      jobs:
+          - job: LoadAndPushImagesToECR
+            displayName: 'Load and Push Images to ECR'
+            steps:
+                - checkout: none
+                - template: modules/download-docker-images.yml
+                  parameters:
+                      ciPipelineName: $(ciPipelineName)
+                      artifactDownloadPath: '$(Pipeline.Workspace)'
+                - template: modules/load-images.yml
+                  parameters:
+                      artifactPath: '$(Pipeline.Workspace)'
+                - template: modules/download-deployment-manifest.yml
+                  parameters:
+                      ciPipelineName: $(ciPipelineName)
+                      artifactDownloadPath: '$(Pipeline.Workspace)'
+                - task: AWSCLI@1
+                  inputs:
+                      awsCredentials: $(serviceConnectionName)
+                      regionName: '$(awsRegion)'
+                  displayName: 'Configure AWS CLI'
+                - script: |
+                      aws ecr get-login-password --region $(awsRegion) | docker login --username AWS --password-stdin $(apiRepositoryUrl | cut -d'/' -f1) > /dev/null 2>&1
+                      VERSION=$(cat $(Pipeline.Workspace)/deployment.json | jq -r .version)
+                      echo "Detected Version: $VERSION"
+                      echo "##vso[task.setvariable variable=imageVersion;isOutput=true]$VERSION"
+
+                      docker tag api:$VERSION $(apiRepositoryUrl):$VERSION
+                      docker tag api:$VERSION $(apiRepositoryUrl):latest
+                      docker push $(apiRepositoryUrl):$VERSION
+                      docker push $(apiRepositoryUrl):latest
+
+                      docker tag client:$VERSION $(clientRepositoryUrl):$VERSION
+                      docker tag client:$VERSION $(clientRepositoryUrl):latest
+                      docker push $(clientRepositoryUrl):$VERSION
+                      docker push $(clientRepositoryUrl):latest
+
+                      docker tag landing:$VERSION $(landingRepositoryUrl):$VERSION
+                      docker tag landing:$VERSION $(landingRepositoryUrl):latest
+                      docker push $(landingRepositoryUrl):$VERSION
+                      docker push $(landingRepositoryUrl):latest
+                  name: PushAndSetVersion
+                  displayName: 'Push Images to ECR'
+
+    - stage: UpdateServices
+      displayName: 'Update AWS Services'
+      dependsOn: PushImages
+      jobs:
+          - job: UpdateAWSServices
+            displayName: 'Update AWS ECS Services'
+            steps:
+                - task: AWSCLI@1
+                  inputs:
+                      awsCredentials: $(serviceConnectionName)
+                      regionName: '$(awsRegion)'
+                  displayName: 'Configure AWS CLI'
+
+                - script: |
+                      echo "Updating ECS services in cluster $(clusterName)..."
+
+                      # Function to update environment variables in a task definition JSON
+                      update_task_definition_env() {
+                        local task_def_json="$1"
+                        shift
+                        local updates=("$@")
+                        local updated_json=$(echo "$task_def_json" | jq '.taskDefinition')
+
+                        for ((i=0; i<${#updates[@]}; i+=2)); do
+                          local name="${updates[i]}"
+                          local value="${updates[i+1]}"
+                          # Check if variable exists, update it; otherwise add it
+                          if echo "$updated_json" | jq -e '.containerDefinitions[0].environment[] | select(.name=="'$name'")' > /dev/null; then
+                              updated_json=$(echo "$updated_json" | jq '(.containerDefinitions[0].environment[] | select(.name=="'$name'")).value = "'$value'"')
+                          else
+                              updated_json=$(echo "$updated_json" | jq '.containerDefinitions[0].environment += [{"name":"'$name'","value":"'$value'"}]' )
+                          fi
+                        done
+                        # Remove fields not allowed for register-task-definition
+                        echo "$updated_json" | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)'
+                      }
+
+                      # --- Update API Service --- 
+                      echo "Updating API Service: $(apiServiceName)"
+                      API_TASK_DEF_FAMILY=$(aws ecs describe-services --cluster $(clusterName) --services $(apiServiceName) --query "services[0].taskDefinition" --output text | awk -F/ '{print $2}' | awk -F: '{print $1}')
+                      echo "API Task Definition Family: $API_TASK_DEF_FAMILY"
+                      API_TASK_DEF_JSON=$(aws ecs describe-task-definition --task-definition $API_TASK_DEF_FAMILY --query 'taskDefinition' --output json)
+                      API_ENV_UPDATES=(
+                        "CLERK_SECRET_KEY" "$(CLERK_SECRET_KEY)"
+                        "DEFAULT_SUPER_ADMIN_EMAIL" "$(DEFAULT_SUPER_ADMIN_EMAIL)"
+                        "DEFAULT_TENANT_ID" "$(DEFAULT_TENANT_ID)"
+                        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" "$(NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)"
+                        "CORS_ORIGIN" "$(CORS_ORIGIN)"
+                        "SENTRY_DSN" "$(SENTRY_DSN)"
+                        "SENTRY_RELEASE" "$(dependencies.PushImages.outputs['LoadAndPushImagesToECR.PushAndSetVersion.imageVersion'])"
+                      )
+                      NEW_API_TASK_DEF_JSON=$(update_task_definition_env "$API_TASK_DEF_JSON" "${API_ENV_UPDATES[@]}")
+                      NEW_API_TASK_ARN=$(aws ecs register-task-definition --cli-input-json "$NEW_API_TASK_DEF_JSON" --query 'taskDefinition.taskDefinitionArn' --output text)
+                      echo "Registered new API Task Definition: $NEW_API_TASK_ARN"
+                      aws ecs update-service --cluster $(clusterName) --service $(apiServiceName) --task-definition $NEW_API_TASK_ARN --force-new-deployment > /dev/null
+                      echo "API Service update initiated."
+
+                      # --- Update Client Service (Force Redeploy Only) --- 
+                      echo "Updating Client Service: $(clientServiceName)"
+                      aws ecs update-service --cluster $(clusterName) --service $(clientServiceName) --force-new-deployment > /dev/null
+                      echo "Client Service update initiated."
+
+                      # --- Update Landing Service (Force Redeploy Only) ---
+                      echo "Updating Landing Service: $(landingServiceName)"
+                      aws ecs update-service --cluster $(clusterName) --service $(landingServiceName) --force-new-deployment > /dev/null
+                      echo "Landing Service update initiated."
+
+                      # --- Wait for services to stabilize ---
+                      echo "Waiting for services to stabilize..."
+                      aws ecs wait services-stable --cluster $(clusterName) --services $(apiServiceName) $(clientServiceName) $(landingServiceName)
+                      echo "All services updated and stable."
+                  displayName: 'Update AWS ECS Services'

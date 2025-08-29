@@ -1,0 +1,198 @@
+trigger: none
+
+pool:
+    vmImage: 'ubuntu-latest'
+
+variables:
+    - group: test-vg
+    - name: nodeVersion
+      value: '18.x'
+
+stages:
+    - stage: Build
+      displayName: 'Build and Test'
+      jobs:
+          - job: BuildAndTest
+            displayName: 'Build and Test'
+            steps:
+                - task: NodeTool@0
+                  inputs:
+                      versionSpec: '$(nodeVersion)'
+                  displayName: 'Install Node.js'
+
+                - task: DockerInstaller@0
+                  displayName: 'Install Docker'
+                  inputs:
+                      dockerVersion: '17.09.0-ce'
+
+                - script: |
+                      docker run -d --name postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=testdb -p 5432:5432 postgres:14
+                      sleep 10
+                  displayName: 'Start PostgreSQL Container'
+
+                - script: npm ci
+                  workingDirectory: './api'
+                  displayName: 'Install API Dependencies'
+
+                - script: npm ci
+                  workingDirectory: './client'
+                  displayName: 'Install Client Dependencies'
+
+                - script: npm ci
+                  workingDirectory: './landing'
+                  displayName: 'Install Landing Dependencies'
+
+                - script: npm run lint
+                  workingDirectory: './api'
+                  displayName: 'Lint API'
+
+                - script: npm run lint
+                  workingDirectory: './client'
+                  displayName: 'Lint Client'
+
+                - script: npm run lint
+                  workingDirectory: './landing'
+                  displayName: 'Lint Landing'
+
+                - script: npm test
+                  workingDirectory: './api'
+                  displayName: 'Test API'
+                  env:
+                      DB_HOST: localhost
+                      DB_USERNAME: postgres
+                      DB_PASSWORD: postgres
+                      DB_DATABASE: testdb
+
+                - script: npm test
+                  workingDirectory: './client'
+                  displayName: 'Test Client'
+
+                - script: npm test
+                  workingDirectory: './landing'
+                  displayName: 'Test Landing'
+
+                - script: npm run build
+                  workingDirectory: './api'
+                  displayName: 'Build API'
+
+                - script: npm run build
+                  workingDirectory: './client'
+                  displayName: 'Build Client'
+
+                - script: npm run build:ssr
+                  workingDirectory: './landing'
+                  displayName: 'Build Landing'
+
+                - task: PublishPipelineArtifact@1
+                  inputs:
+                      targetPath: './api/dist'
+                      artifact: 'api-build'
+                      publishLocation: 'pipeline'
+                  displayName: 'Publish API Build'
+
+                - task: PublishPipelineArtifact@1
+                  inputs:
+                      targetPath: './client/dist'
+                      artifact: 'client-build'
+                      publishLocation: 'pipeline'
+                  displayName: 'Publish Client Build'
+
+                - task: PublishPipelineArtifact@1
+                  inputs:
+                      targetPath: './landing/dist/server'
+                      artifact: 'landing-build'
+                      publishLocation: 'pipeline'
+                  displayName: 'Publish Landing Build'
+
+    - stage: BuildDockerImages
+      displayName: 'Build Docker Images'
+      dependsOn: Build
+      jobs:
+          - job: DockerBuild
+            displayName: 'Build Docker Images'
+            steps:
+                - task: Docker@2
+                  displayName: 'Build API Image'
+                  inputs:
+                      command: build
+                      repository: 'api'
+                      dockerfile: './api/Dockerfile'
+                      buildContext: './api'
+                      tags: |
+                          $(Build.BuildNumber)
+
+                - task: Docker@2
+                  displayName: 'Build Client Image'
+                  inputs:
+                      command: build
+                      repository: 'client'
+                      dockerfile: './client/Dockerfile'
+                      buildContext: './client'
+                      arguments: >-
+                          --build-arg VITE_API_URL="$(VITE_API_URL)"
+                          --build-arg VITE_CLERK_PUBLISHABLE_KEY="$(VITE_CLERK_PUBLISHABLE_KEY)"
+                      tags: |
+                          $(Build.BuildNumber)
+
+                - task: Docker@2
+                  displayName: 'Build Landing Image'
+                  inputs:
+                      command: build
+                      repository: 'landing'
+                      dockerfile: './landing/Dockerfile'
+                      buildContext: './landing'
+                      tags: |
+                          $(Build.BuildNumber)
+
+                - script: |
+                      mkdir -p $(Build.ArtifactStagingDirectory)/docker-images
+                      docker save api:$(Build.BuildNumber) -o $(Build.ArtifactStagingDirectory)/docker-images/api-image.tar
+                      docker save client:$(Build.BuildNumber) -o $(Build.ArtifactStagingDirectory)/docker-images/client-image.tar
+                      docker save landing:$(Build.BuildNumber) -o $(Build.ArtifactStagingDirectory)/docker-images/landing-image.tar
+                  displayName: 'Save Docker Images'
+
+                - task: PublishPipelineArtifact@1
+                  inputs:
+                      targetPath: '$(Build.ArtifactStagingDirectory)/docker-images'
+                      artifact: 'docker-images'
+                      publishLocation: 'pipeline'
+                  displayName: 'Publish Docker Images'
+
+    - stage: PublishManifest
+      displayName: 'Publish Manifest'
+      dependsOn: BuildDockerImages
+      jobs:
+          - job: CreateDeploymentManifest
+            displayName: 'Create Deployment Manifest'
+            steps:
+                - script: |
+                      echo "Creating deployment manifest for $(Build.BuildNumber)"
+                      cat > deployment.json << EOF
+                      {
+                        "version": "$(Build.BuildNumber)",
+                        "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+                        "branch": "$(Build.SourceBranchName)",
+                        "images": {
+                          "api": "api:$(Build.BuildNumber)",
+                          "client": "client:$(Build.BuildNumber)",
+                          "landing": "landing:$(Build.BuildNumber)"
+                        },
+                        "buildPath": {
+                          "api": "api/dist/api/main.js",
+                          "client": "client/build",
+                          "landing": "landing/dist/server"
+                        },
+                        "terraform": {
+                          "providers": ["aws", "azure"]
+                        }
+                      }
+                      EOF
+                      cat deployment.json
+                  displayName: 'Create Deployment Manifest'
+
+                - task: PublishPipelineArtifact@1
+                  inputs:
+                      targetPath: './deployment.json'
+                      artifact: 'deployment-manifest'
+                      publishLocation: 'pipeline'
+                  displayName: 'Publish Deployment Manifest'

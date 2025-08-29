@@ -1,0 +1,12 @@
+---
+description: 
+globs: *Store.ts
+alwaysApply: false
+---
+## Zustand rules
+- Ensure immutability: Always return new state objects or arrays when updating state, never mutate the existing state directly.
+- Use selectors for performance: Subscribe components only to the specific state slices they need, rather than the whole store, to prevent unnecessary re-renders.
+- Split complex state: Avoid monolithic stores by breaking down state into smaller, logical stores based on domain or feature.
+- Define actions within the store: Keep state update logic encapsulated within the create function alongside the state it modifies.
+- Leverage middleware: Utilize middleware like persist for local storage synchronization.
+- Keep stores focused: Design stores to manage a specific, cohesive piece of state to maintain clarity and separation of concerns.

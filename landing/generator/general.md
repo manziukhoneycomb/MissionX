@@ -1,0 +1,6 @@
+- Use TailwindCSS utility classes for styling
+- Avoid custom CSS unless absolutely necessary
+- Maintain consistent order of utility classes
+- Use Tailwind's responsive variants for adaptive designs
+- Define and use design tokens in tailwind.config.js
+- Use framer-motion for animations

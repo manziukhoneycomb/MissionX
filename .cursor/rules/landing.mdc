@@ -1,0 +1,16 @@
+---
+description: 
+globs: landing/**
+alwaysApply: false
+---
+### Icons
+Icons location: public/*
+
+### Steps to generate page
+When you have been asked to generate landing page for certain subject/field/domain you must follow these steps to complete task:
+- Update the content of the generator/landing.md to shift its focus from the current domain to a new domain provided in prompt. Replace terminology, examples, and context-specific references so they align with the new subject area, while maintaining the structure and purpose of the original content.
+- Update the content of the generator/placeholders.txt to shift its focus from the current domain
+- Update icon for the website public/icon.svg
+- Update site name in index.html using generator/placeholders.txt
+- Generate landing page in src/pages/index.page.txt using rules from generator/general.md and generator/landing.md, placeholders from generator/placeholders.txt
+- If you were not provided with images/svg icons for website content you must generate svg icons it on your own.

@@ -1,0 +1,34 @@
+---
+description: Activate this rule when you need to understand the project structure
+globs: 
+alwaysApply: false
+---
+# Project structure
+src/
+├── api/                    
+│   ├── controllers/      
+│   │   ├── app.controller.spec.ts
+│   │   └── app.controller.ts
+│   ├── modules/ 
+│   │   └── app.module.ts
+│   ├── services/           
+│   │   └── app.service.ts
+│   └── main.ts
+│
+├── application/            
+│   └── repositories/           
+│       └── tenant.repository.interface.ts
+│
+├── domain/                 
+│   ├── constants/          
+│   │   ├── http-status.enum.ts
+│   │   └── index.ts
+│   └── entities/           
+│       └── tenant.entity.ts
+│
+└── infrastructure/         
+    └── persistence/        
+        ├── repositories/   
+        │   └── tenant.repository.ts
+        ├── persistence.module.ts
+        └── typeorm.config.ts

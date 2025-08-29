@@ -1,0 +1,211 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Invoice Management System
+ 
+## Overview
+Create a complete Invoice Management system using React, TypeScript, and Material UI v7. The system should allow users to view, upload, and delete invoices, with an AI assistant feature to help users.
+ 
+## Core Technical Requirements
+- Functional React components with TypeScript
+- Material UI v7 for UI components
+- React Query for data fetching and mutations
+- Responsive design for all screen sizes
+- Proper TypeScript typing throughout
+ 
+## Module Structure
+```
+/modules/invoices/
+  ├── components/
+  │   ├── InvoiceManagementPage.tsx
+  │   ├── InvoiceTable.tsx
+  │   ├── InvoiceDetails.tsx
+  │   ├── InvoiceFileUpload.tsx
+  │   └── ChatDrawer.tsx
+  ├── types/
+  │   └── invoice.ts
+  ├── services/
+  │   ├── invoiceService.ts
+  │   └── aiService.ts
+  ├── invoiceQueries.ts
+  ├── invoiceMutations.ts
+  ├── invoiceQueryKeys.ts
+  └── index.ts
+```
+ 
+## Type Definitions
+Create these TypeScript interfaces in `types/invoice.ts`:
+ 
+```typescript
+export interface InvoiceItem {
+  id: string;
+  lineNumber: number;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+}
+ 
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  issueDate: string; // YYYY-MM-DD
+  dueDate: string; // YYYY-MM-DD
+  vendorName: string;
+  vendorAddress: string;
+  vendorPhone: string;
+  vendorEmail: string;
+  customerName: string;
+  customerAddress: string;
+  customerPhone: string;
+  customerEmail: string;
+  subtotal: number;
+  discount: number;
+  taxRate: number;
+  taxAmount: number;
+  totalAmount: number;
+  terms: string;
+  items: InvoiceItem[];
+}
+ 
+export interface AskAboutDataDto {
+  query: string;
+}
+ 
+export interface AskAboutDataResponseDto {
+  response: string;
+  sql?: string;
+  rawResult?: unknown;
+  image?: string; // base64 encoded image
+  error?: string;
+}
+```
+ 
+## API Service
+Implement `invoiceService.ts` with these methods connecting to the specified endpoints:
+ 
+```typescript
+// GET /invoices - Returns Invoice[]
+getInvoices(): Promise<Invoice[]>
+ 
+// GET /invoices/{id} - Returns single Invoice or 404
+getInvoice(id: string): Promise<Invoice>
+ 
+// DELETE /invoices/{id} - Deletes an invoice or returns 404
+deleteInvoice(id: string): Promise<void>
+ 
+// POST /invoices/import - Accepts multipart/form-data with field "file"
+importInvoice(file: File): Promise<void>
+```
+ 
+Implement `aiService.ts` with this method for the chat drawer feature:
+ 
+```typescript
+// POST /ai/ask-about-data - Takes query and returns AI analysis
+askAboutData(data: AskAboutDataDto): Promise<AskAboutDataResponseDto>
+```
+ 
+## React Query Integration
+### Query Keys (`invoiceQueryKeys.ts`)
+Create structured query keys for consistent caching:
+ 
+```typescript
+export const invoiceKeys = {
+  all: ['invoices'] as const,
+  lists: () => [...invoiceKeys.all, 'list'] as const,
+  list: (filters: string) => [...invoiceKeys.lists(), { filters }] as const,
+  details: () => [...invoiceKeys.all, 'detail'] as const,
+  detail: (id: string) => [...invoiceKeys.details(), id] as const,
+};
+```
+ 
+### Query Hooks (`invoiceQueries.ts`)
+Implement these hooks using React Query:
+- `useInvoices()`: Fetches all invoices using GET /api/invoices
+- `useInvoice(id)`: Fetches single invoice using GET /api/invoices/{id}
+ 
+### Mutation Hooks (`invoiceMutations.ts`)
+Implement these mutation hooks:
+- `useDeleteInvoice()`: Deletes invoice using DELETE /api/invoices/{id}
+- `useImportInvoice()`: Imports invoice file using POST /api/invoices/import
+ 
+## Component Requirements
+ 
+### 1. InvoiceManagementPage
+- Main container component
+- This page should be only accessible by user with 'Super Admin' role
+- The header and table should be divided by horizontal line
+- Manage state for:
+  - Selected invoice for detailed view
+  - Highlighted invoice from AI assistant
+  - Chat drawer open/closed state
+- Switch between invoice list and detail views
+- The shouldn't contain button for invoice import
+- The page should be accessible from /invoices url and Invoices option in MainLayout.txt
+ 
+### 2. InvoiceTable
+- Full-width table listing all invoices
+- Columns: Invoice #, Vendor, Customer, Issue Date, Due Date, Total Amount, Status, Actions
+- Pagination with rows per page selection
+- Highlight effect for invoices selected by AI assistant
+- There must be search field on the top of the table to find invoices by name
+- Action buttons:
+  - View - Opens invoice details
+  - Delete - With confirmation dialog
+ 
+### 3. InvoiceDetails
+- Display comprehensive invoice details:
+  - Header with invoice number and status (Active/Overdue)
+  - Vendor and customer information
+  - Invoice line items in a table
+  - Subtotal, tax, discount, and total
+  - Back button to return to invoice list
+  - Print and Download PDF buttons
+ 
+### 4. InvoiceFileUpload
+- The button must be accessible from navigation bar in MainLayout.tsx only by user with 'Admin' role
+- Button with hidden file input
+- Support for XLSX file formats
+- Loading state during upload
+- Error handling for failed uploads
+ 
+### 5. ChatDrawer
+- Right-side drawer containing the Chat component
+- Header with title and close button
+- Method to highlight invoices based on AI suggestions
+- Utilizes the aiService.askAboutData API to send user queries and display responses
+- Should handle various response types including text, SQL, and images
+- Should display appropriate error messages when AI encounters an issue
+- All server responses come as raw HTML. Before inserting into the chat, properly parse, sanitize, and render the HTML to ensure it displays correctly and securely.  
+- Server responses may wrap database objects in spans like `<span class="db-object" data-id="${id}">${name}</span>`. Attach click handlers to these spans so that clicking one highlights the matching invoice row in the table (e.g. with a pulse animation).
+ 
+## Layout Requirements
+- InvoiceManagementPage should include:
+  - Title "Invoice Management"
+  - Import button (implement using InvoiceFileUpload)
+  - AI Assistant button (opens ChatDrawer)
+  - InvoiceTable or InvoiceDetails based on selected state
+ 
+## Styling Guidelines
+- Use Material UI's theming system
+- Consistent border radius across components
+- Proper spacing using the MUI spacing system
+- Responsive layouts for all screen sizes
+- Animations for highlighting and transitions
+- If text follows an icon both should be centered vertically
+ 
+## Additional Features
+- Format dates using locale-aware formatting
+- Format currency values with proper currency symbol
+- Show loading states during data fetching
+- Proper error handling with user-friendly messages
+- Empty states for no invoices
+ 
+## Implementation Notes
+- Use the latest React Query version (TanStack Query)
+- Implement proper error boundaries
+- Use MUI's latest styling approach
+ 
+- Ensure accessibility compliance 

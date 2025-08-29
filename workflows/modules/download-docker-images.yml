@@ -1,0 +1,18 @@
+parameters:
+    - name: ciPipelineName
+      type: string
+      default: 'CI Pipeline'
+    - name: artifactDownloadPath
+      type: string
+      default: '$(Pipeline.Workspace)'
+
+steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+          source: 'specific'
+          project: '$(System.TeamProject)'
+          pipeline: '${{ parameters.ciPipelineName }}'
+          runVersion: 'latest'
+          artifact: 'docker-images'
+          path: '${{ parameters.artifactDownloadPath }}'
+      displayName: 'Download Docker Images'

@@ -1,0 +1,8 @@
+---
+description: Activate this rule when you need to understand the locations of the projects
+globs: 
+alwaysApply: false
+---
+- ./client — contains frontend part
+- ./api — contains backend part
+- ./landing — contains landing

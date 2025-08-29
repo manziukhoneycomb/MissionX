@@ -1,0 +1,12 @@
+parameters:
+    - name: artifactPath
+      type: string
+      default: '$(Pipeline.Workspace)'
+
+steps:
+    - script: |
+          docker load -i ${{ parameters.artifactPath }}/api-image.tar
+          docker load -i ${{ parameters.artifactPath }}/client-image.tar
+          docker load -i ${{ parameters.artifactPath }}/landing-image.tar
+          docker images
+      displayName: 'Load Docker Images'

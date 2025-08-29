@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run formatting for API
+echo "Running format for API..."
+cd "$(dirname "$0")/../api" && npm run format
+
+# Run formatting for Client
+echo "Running format for Client..."
+cd "$(dirname "$0")/../client" && npm run format
+
+# Run formatting for Landing
+echo "Running format for Landing..."
+cd "$(dirname "$0")/../landing" && npm run format
+
+echo "All formatting complete!"

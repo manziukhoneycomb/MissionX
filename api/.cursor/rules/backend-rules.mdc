@@ -1,0 +1,122 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Technologies
+- NestJS
+- TypeScript
+- TypeORM
+- PostgreSQL
+- Jest
+ 
+# Backend Rules
+- Follow clean architecture principles with distinct layers:
+    - Domain: Core business logic and domain entities.
+    - Application: Use cases and application services.
+    - Infrastructure: External dependencies (DB, API).
+    - Presentation: HTTP controllers or API gateways.
+- Dependencies must always point inward:
+    - API → Application → Domain
+    - Infrastructure → Application → Domain
+    - Domain has no dependencies on other layers
+- Use dependency injection to manage services.
+- Follow SOLID principles.
+- Use DTOs for data transfer between layers.
+- Use domain-specific error types to provide meaningful feedback.
+- Each feature should have its own module.
+- Modules should follow the same layered architecture.
+- Use NestJS module system to organize dependencies.
+
+# Domain Layer
+- Location: src/domain/ - Contains the core business logic and entities.
+- Must be completely independent of other layers.
+- No imports from application, infrastructure, or api layers(only TypeORM decorators are allowed for entities to simplify the code).
+- Contains pure business logic with no external dependencies.
+- Domain entities should be anemic (data-only) or rich (with behavior).
+- Use value objects for immutable concepts.
+- Define repository interfaces here, not implementations.
+- Include domain events, exceptions, and validators.
+- Exceptions:
+    - Create specific exception types for domain errors.
+    - Use meaningful names that reflect business concepts.
+    - Include relevant context information.
+
+# Application Layer
+- Location: src/application/ - Orchestrates the domain layer to fulfill use cases.
+- Depends on Domain layer.
+- Contains business rules and workflows.
+- Use domain entities and repositories.
+- Implement use cases and application services.
+- Handle domain events and exceptions.
+- Use DTOs for data transfer between layers.
+- May depend only on the domain layer.
+- Contains use cases, commands, and queries.
+- Implements CQRS pattern with command handlers and query handlers:
+    - Command Pattern:
+        - Use commands for operations that change state.
+        - Each command should have a single handler.
+        - Commands should be immutable data structures.
+        - Command handlers should orchestrate domain operations.
+    - Query Pattern:
+        - Use queries for operations that read state.
+        - Each query should have a single handler.
+        - Queries should be optimized for read operations.
+        - Consider using projections for complex read models.
+- Defines DTOs for input/output data transformation.
+- Handles transaction boundaries.
+- No direct infrastructure dependencies (database, external APIs).
+- Includes application services that coordinate domain operations.
+- Exceptions:
+    - Handle domain exceptions and translate to application exceptions.
+    - Add additional context information if needed.
+    - Use consistent error codes and messages.
+
+# Infrastructure Layer
+- Location: src/infrastructure/ - Provides implementations for interfaces defined in domain and application layers.
+- May depend on domain and application layers.
+- Contains repository implementations.
+- Use TypeORM or other ORM tools for database access.
+- Encapsulate all database operations.
+- Implements external service clients.
+- Handles caching, logging, and other cross-cutting concerns.
+- Uses data mappers to convert between domain entities and application models.
+- No business logic should exist here.
+
+# Presentation Layer
+- Location: src/api/ - Exposes the application functionality to clients.
+- May depend on application and domain layers.
+- Contains controllers, routes, and middleware.
+- Handles HTTP requests and responses.
+- Performs input validation and sanitization.
+- Maps DTOs to/from HTTP requests/responses.
+- No business logic should exist here.
+- Implements proper error handling and status codes.
+- Exceptions:
+    - Implement global exception filters.
+    - Map application exceptions to appropriate HTTP status codes.
+    - Provide consistent error response format.
+
+# Testing
+- Unit Tests:
+    - Focus on testing domain logic in isolation.
+    - Mock dependencies using interfaces.
+    - Test each use case thoroughly.
+- Integration Tests:
+    - Test repository implementations against a test database.
+    - Verify that infrastructure components work correctly.
+
+# Security Practices
+- Authentication and Authorization:
+    - Implement in the infrastructure layer.
+    - Use guards in the API layer.
+    - Keep business logic independent of security concerns.
+- Data Validation:
+    - Validate input at the API boundary.
+    - Use DTOs with class-validator decorators.
+    - Implement domain-specific validation in entities.
+- Secure Coding:
+    - Sanitize all user input.
+    - Use parameterized queries.
+    - Implement proper CORS configuration.
+    - Follow OWASP security guidelines.

@@ -1,0 +1,55 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+      # Code Style & Formatting
+
+      - Use English for all code and documentation.
+      - Use TypeScript only.
+      - Embrace Strict mode fully with appropriate compiler option compilerOptions: "strict": true.
+      - Use template literals to define URL patterns and others.
+      - Use satisfies operator for enforcing type constraints.
+      - Prefer exact type matches with 'as const'.
+      - Avoid using any and unknown.
+      - Avoid mutating parameters
+      - Strings should be safe.
+      - Use utility types.
+      - Always declare the type of each variable and function (parameters and return value).
+      - One export per file.
+      - Avoid using comments, the code should be self-explanatory.
+      - Do not use short-hands.
+      - Use spread and destructuring.
+      - Put all declarations at the top of the function or class.
+
+      # Naming Conventions
+
+      - Use PascalCase for classes.
+      - Use camelCase for variables, functions, and methods.
+      - Use kebab-case for file and directory names.
+      - Use UPPERCASE for environment variables.
+      - Avoid magic numbers / strings and define constants.
+      - Use descriptive names that reflect purpose, avoid abbreviations in names.
+      - Avoid combining values and functionality in names.
+
+      # Directory Structure
+      - Keep related files together
+      - Use index files to simplify imports
+
+      # Functions & Logic
+      - Keep functions short and single-purpose.
+      - Do not use flags as function parameters
+      - Avoid deeply nested blocks by:
+        - Using early returns.
+        - Extracting logic into utility functions.
+      - Use higher-order functions (map, filter, reduce) to simplify logic.
+      - Use arrow functions for simple cases (<3 instructions), named functions otherwise.
+      - Use default parameter values instead of null/undefined checks.
+
+      # Data Handling
+
+      - Avoid excessive use of primitive types; encapsulate data in composite types.
+      - Avoid placing validation inside functions—use classes with internal validation instead.
+      - Prefer immutability for data.
+      - Use readonly for immutable properties.
+      - Use as const for literals that never change.

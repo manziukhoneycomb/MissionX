@@ -1,0 +1,89 @@
+---
+description: 
+globs: api/**/*.controller.ts,api/**/*.dto.ts
+alwaysApply: false
+---
+# API Documentation with NestJS/Swagger
+
+## Controller Documentation
+Always document controllers with:
+- `@ApiTags()` - Group operations by resource
+- `@ApiOperation()` - Describe what each endpoint does
+- `@ApiResponse()` - Document all possible response statuses
+- `@ApiParam()` - Document URL parameters
+- `@ApiQuery()` - Document query parameters
+
+Example:
+```typescript
+@ApiTags('users')
+@Controller('users')
+export class UsersController {
+  @Get(':id')
+  @ApiOperation({ summary: 'Get user by ID' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'User found', type: UserResponseDto })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  getUser(@Param('id') id: string): Promise<UserResponseDto> {
+    // implementation
+  }
+}
+```
+
+## DTO Documentation
+All DTOs must be documented with:
+- `@ApiProperty()` - Document each property
+- Use proper types and enums
+- Include examples where helpful
+
+Example:
+```typescript
+export class CreateUserDto {
+  @ApiProperty({
+    description: 'The user\'s email address',
+    example: 'user@example.com'
+  })
+  email: string;
+
+  @ApiProperty({
+    description: 'The user\'s password',
+    minLength: 8,
+    example: 'password123'
+  })
+  password: string;
+
+  @ApiProperty({
+    description: 'User role',
+    enum: UserRole,
+    default: UserRole.USER
+  })
+  role?: UserRole;
+}
+```
+
+## API Documentation Best Practices
+- Document all endpoints consistently
+- Use descriptive summaries and descriptions
+- Include all possible response statuses
+- Document request and response body schemas
+- Mark required vs optional properties
+- Show examples for complex properties
+- Group related endpoints with consistent tags
+- Document security requirements (auth)
+
+## Required Decorators Checklist
+### Controllers
+- [ ] @ApiTags
+- [ ] @ApiOperation for each method
+- [ ] @ApiResponse for all status codes
+- [ ] @ApiParam for URL parameters
+- [ ] @ApiQuery for query parameters
+- [ ] @ApiHeader for required headers
+- [ ] @ApiBearerAuth when authentication required
+
+### DTOs
+- [ ] @ApiProperty for each property
+  - [ ] description
+  - [ ] required/optional status
+  - [ ] example values
+  - [ ] type information
+  - [ ] validation constraints (min/max/pattern)

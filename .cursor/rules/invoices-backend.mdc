@@ -1,0 +1,122 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Implement an **Invoice Module** in a NestJS + TypeORM application.  Your task is to generate all necessary code and configuration based on the specification below.  Use **exceljs** to parse Excel files.
+DONT BE LAZY! IMPLEMENT ALL CODE.
+ 
+---
+ 
+## Models
+ 
+### Domain Entities
+ 
+- **Invoice** (`/api/src/domain/entities/invoice.entity.ts`)
+  - `id`: UUID primary key  
+  - `invoiceNumber`: string (50 chars)  
+  - `issueDate`: date string  
+  - `dueDate`: date string  
+  - `vendorName`: string (255 chars)  
+  - `vendorAddress`: text  
+  - `vendorPhone`: string (50 chars)  
+  - `vendorEmail`: string (100 chars)  
+  - `customerName`: string (255 chars)  
+  - `customerAddress`: text  
+  - `customerPhone`: string (50 chars)  
+  - `customerEmail`: string (100 chars)  
+  - `subtotal`: decimal (12,2)  
+  - `discount`: decimal (12,2)  
+  - `taxRate`: decimal (5,4)  
+  - `taxAmount`: decimal (12,2)  
+  - `totalAmount`: decimal (12,2)  
+  - `items`: one-to-many relation with **InvoiceItem**
+  - `tenant`: one-to-many relation with **Tenant**
+ 
+- **InvoiceItem** (`/api/src/domain/entities/invoice-item.entity.ts`)
+  - `id`: UUID primary key  
+  - `invoice`: many-to-one relation with **Invoice**  
+  - `lineNumber`: integer  
+  - `description`: string (255 chars)  
+  - `quantity`: integer  
+  - `unitPrice`: decimal (12,2)  
+  - `amount`: decimal (12,2)  
+ 
+---
+ 
+## DTOs
+ 
+- **InvoiceDto** (`/api/src/application/invoices/dto/invoice.dto.ts`)  
+  Mirrors **Invoice** entity with Swagger annotations.
+ 
+- **InvoiceItemDto** (`/api/src/application/invoices/dto/invoice-item.dto.ts`)  
+  Mirrors **InvoiceItem** entity with Swagger annotations.
+ 
+---
+ 
+## Controllers
+You must use src/api/controllers/secrets.controller.ts to understand how to secure endpoints and extract tenantId from request
+- **InvoiceController** (`/api/src/api/controllers/invoice.controller.ts`)
+  - `GET /invoices`: get all invoices [roles: SUPER_ADMIN] 
+  - `GET /invoices/:id`: get invoice by ID  [roles: SUPER_ADMIN]
+  - `POST /invoices/import`: import invoice from uploaded Excel file (use exceljs)   [Roles: USER, ADMIN, SUPER_ADMIN]
+  - `DELETE /invoices/:id`: delete invoice by ID  [Roles: SUPER_ADMIN]
+ 
+---
+ 
+## Services
+ 
+- **InvoiceService** (`/api/src/application/invoices/invoice.service.ts`)
+  - `findAll()`: fetch all invoices with items  
+  - `findById(id: string)`: fetch single invoice with items  
+  - `importFromBuffer(buffer: Buffer)`: parse Excel buffer with exceljs and save invoice + items  
+  - `remove(id: string)`: delete invoice by ID  
+ 
+### Excel Import Algorithm
+ 
+1. Load workbook with **exceljs**  
+2. Read header cells:  
+   - Invoice number: cell D10  
+   - Issue date: cell D11  
+   - Due date: cell D12  
+   - Vendor name:    cell G2  
+   - Vendor address: cell G3  
+   - Vendor phone:   cell G5  
+   - Vendor email:   cell G6  
+   - Customer name:    cell G10  
+   - Customer address: cell G11  
+   - Customer phone:   cell G12  
+   - Customer email:   cell G13  
+3. Parse items starting row 17 until blank row:  
+   - Column 3: lineNumber  
+   - Column 4: description  
+   - Column 5: quantity  
+   - Column 6: unitPrice  
+   - Column 7: amount  
+4. Read totals after items:  
+   - Subtotal: next row, column 7  
+   - Discount: following row, column 7  
+   - Tax rate: next row, column 7  
+   - Tax amount: next row, column 7  
+   - Compute `totalAmount = subtotal - discount + taxAmount`  
+5. Save Invoice and related InvoiceItem entities via repository  
+ 
+---
+ 
+## Repositories
+ 
+- **InvoiceRepository** (`/api/src/application/repositories/invoice.repository.ts`)
+  - `findAll()`: return invoices with items  
+  - `findById(id: string)`: return one invoice with items  
+  - `save(invoice: Invoice)`: save invoice + items  
+  - `remove(id: string)`: delete invoice  
+ 
+---
+ 
+## Mappers
+ 
+- **InvoiceMapper** (`/api/src/application/invoices/invoice.mapper.ts`)
+  - `toDto(entity: Invoice)`: Invoice → InvoiceDto  
+  - `toDtoList(entities: Invoice[])`: Invoice[] → InvoiceDto[]  
+
+  - `toItemDto(entity: InvoiceItem)`: InvoiceItem → InvoiceItemDto (private)

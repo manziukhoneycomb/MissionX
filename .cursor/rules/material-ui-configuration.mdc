@@ -1,0 +1,6 @@
+---
+description: 
+globs: client/**/@mui/**/*.*
+alwaysApply: false
+---
+- The project uses Material UI@^7.0.2

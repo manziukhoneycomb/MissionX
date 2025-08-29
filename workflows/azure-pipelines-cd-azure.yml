@@ -1,0 +1,105 @@
+trigger: none
+
+pool:
+    vmImage: 'ubuntu-latest'
+
+variables:
+    - group: test-vg
+    - name: ciPipelineName
+      value: 'test-ci'
+    - name: serviceConnectionName
+      value: 'ai-template-service-connection'
+    - name: prefix
+      value: 'aitemplate'
+    - name: environment
+      value: 'test'
+    - name: acrLoginServer
+      value: '$(prefix)acr$(environment).azurecr.io'
+    - name: acrName
+      value: '$(prefix)acr$(environment)'
+    - name: resourceGroupName
+      value: '$(prefix)-rg-$(environment)'
+    - name: apiAppName
+      value: '$(prefix)-api-$(environment)'
+    - name: clientAppName
+      value: '$(prefix)-client-$(environment)'
+    - name: landingAppName
+      value: '$(prefix)-landing-$(environment)'
+
+stages:
+    - stage: PushImages
+      displayName: 'Push Images to Azure Container Registry'
+      jobs:
+          - job: LoadAndPushImagesToACR
+            displayName: 'Load and Push Images to ACR'
+            steps:
+                - checkout: none
+                - template: modules/download-docker-images.yml
+                  parameters:
+                      ciPipelineName: $(ciPipelineName)
+                      artifactDownloadPath: '$(Pipeline.Workspace)'
+                - template: modules/load-images.yml
+                  parameters:
+                      artifactPath: '$(Pipeline.Workspace)'
+                - template: modules/download-deployment-manifest.yml
+                  parameters:
+                      ciPipelineName: $(ciPipelineName)
+                      artifactDownloadPath: '$(Pipeline.Workspace)'
+                - task: AzureCLI@2
+                  name: SetVersion
+                  inputs:
+                      azureSubscription: $(serviceConnectionName)
+                      scriptType: 'bash'
+                      scriptLocation: 'inlineScript'
+                      inlineScript: |
+                          az acr login --name $(acrName)
+
+                          VERSION=$(cat $(Pipeline.Workspace)/deployment.json | jq -r .version)
+                          echo "Detected Version: $VERSION"
+                          echo "##vso[task.setvariable variable=imageVersion;isOutput=true]$VERSION"
+
+                          docker tag api:$VERSION $(acrLoginServer)/api:$VERSION
+                          docker tag api:$VERSION $(acrLoginServer)/api:latest
+                          docker push $(acrLoginServer)/api:$VERSION
+                          docker push $(acrLoginServer)/api:latest
+
+                          docker tag client:$VERSION $(acrLoginServer)/client:$VERSION
+                          docker tag client:$VERSION $(acrLoginServer)/client:latest
+                          docker push $(acrLoginServer)/client:$VERSION
+                          docker push $(acrLoginServer)/client:latest
+
+                          docker tag landing:$VERSION $(acrLoginServer)/landing:$VERSION
+                          docker tag landing:$VERSION $(acrLoginServer)/landing:latest
+                          docker push $(acrLoginServer)/landing:$VERSION
+                          docker push $(acrLoginServer)/landing:latest
+                  displayName: 'Push Images to ACR'
+
+    - stage: UpdateServices
+      displayName: 'Update Azure Services'
+      dependsOn: PushImages
+      jobs:
+          - job: UpdateAzureServices
+            displayName: 'Update Azure App Services'
+            steps:
+                - checkout: none
+                - task: AzureCLI@2
+                  inputs:
+                      azureSubscription: $(serviceConnectionName)
+                      scriptType: 'bash'
+                      scriptLocation: 'inlineScript'
+                      inlineScript: |
+                          # Update API App Settings
+                          az webapp config appsettings set --resource-group $(resourceGroupName) --name $(apiAppName) --settings \
+                            CLERK_SECRET_KEY=$(CLERK_SECRET_KEY) \
+                            DEFAULT_SUPER_ADMIN_EMAIL=$(DEFAULT_SUPER_ADMIN_EMAIL) \
+                            DEFAULT_TENANT_ID=$(DEFAULT_TENANT_ID) \
+                            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$(NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) \
+                            CORS_ORIGIN=$(CORS_ORIGIN) \
+                            SENTRY_DSN=$(SENTRY_DSN) \
+                            SENTRY_RELEASE=$(dependencies.PushImages.outputs['LoadAndPushImagesToACR.SetVersion.imageVersion'])
+
+                          # Restart App Services
+                          az webapp restart --resource-group $(resourceGroupName) --name $(apiAppName)
+                          az webapp restart --resource-group $(resourceGroupName) --name $(clientAppName)
+                          az webapp restart --resource-group $(resourceGroupName) --name $(landingAppName)
+                  displayName: 'Update Azure App Services'

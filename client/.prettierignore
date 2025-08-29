@@ -1,0 +1,41 @@
+**node_modules
+
+# Build output
+build/
+dist/
+coverage/
+
+# Dependencies
+node_modules/
+
+# Package files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+.cache/
+.next/
+.nuxt/
+.vite/
+.turbo/
+storybook-static/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Misc
+.DS_Store
+*.log
+*.tsbuildinfo
+.vercel
+.idea/
+.vscode/
+
+# Specific file types
+*.min.js
+*.bundle.js
+*.chunk.js
+*.map

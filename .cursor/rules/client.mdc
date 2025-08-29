@@ -1,0 +1,14 @@
+---
+description: 
+globs: client/**
+alwaysApply: false
+---
+### Steps to change design
+When you have been asked to change the design on components you must follow these steps to complete the task:
+- Use global MUI styles to redesign components.
+- Update styles of Material UI components for components in src/common/components and src/modules directories.
+- Update icon for the website in public/icon.svg, use landing icon landing/public/icon.svg
+- Update site name in index.html, use project_name from landing/generator/placeholders.txt
+- You must update site name in src/modules/login/Login.tsx component, use project_name from landing/generator/placeholders.txt
+
+- If you were not provided with images/svg icons for website content you must generate svg icons it on your own.
