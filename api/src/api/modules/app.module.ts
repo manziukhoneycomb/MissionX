@@ -16,6 +16,7 @@ import { LlmModule } from '../../infrastructure/llm/modules/llm.module';
 import { AiController } from '../controllers/ai.controller';
 import { InvoiceModule } from '../../application/invoices/invoice.module';
 import { InvoiceController } from '../controllers/invoice.controller';
+import { HealthController } from '../controllers/health.controller';
 
 @Module({
     imports: [
@@ -37,6 +38,7 @@ import { InvoiceController } from '../controllers/invoice.controller';
         SecretsController,
         AiController,
         InvoiceController,
+        HealthController,
     ],
     providers: [Logger],
 })
