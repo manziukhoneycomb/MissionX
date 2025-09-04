@@ -1,6 +1,7 @@
 import { SignedIn, SignedOut } from '@clerk/clerk-react';
 import AppRoutes from './routes/AppRoutes';
 import Login from './modules/login/Login';
+import CookieBanner from './common/components/CookieBanner';
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <SignedIn>
         <AppRoutes />
       </SignedIn>
+      <CookieBanner />
     </>
   );
 }
