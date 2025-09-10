@@ -20,6 +20,7 @@ import {
 import { Theme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import CustomUserButton from './CustomUserButton';
+import ThemeSwitcher from './ThemeSwitcher';
 import useUserRoles from '../hooks/useUserRoles';
 import { ROLES } from '../constants/roles';
 import InvoiceFileUpload from '../../modules/invoices/components/InvoiceFileUpload';
@@ -152,7 +153,8 @@ const MainLayout: React.FC = () => {
               ))}
             </Box>
 
-            <Box sx={{ ml: { xs: 1, md: 2 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: { xs: 1, md: 2 } }}>
+              <ThemeSwitcher />
               <CustomUserButton afterSignOutUrl="/" />
             </Box>
           </Toolbar>
