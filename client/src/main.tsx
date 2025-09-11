@@ -8,6 +8,7 @@ import { ClerkProvider } from '@clerk/clerk-react';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import clerkInstance from './common/services/clerkInstance.ts';
+import { ThemeContextProvider, useThemeMode } from './common/contexts/ThemeContext.tsx';
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -46,28 +47,28 @@ const queryClient = new QueryClient({
 });
 
 // Custom theme with invoice analytics design system
-const theme = createTheme({
+const createAppTheme = (mode: 'light' | 'dark') => createTheme({
   palette: {
-    mode: 'dark',
+    mode,
     primary: {
       main: '#1fb8aa',
       light: '#3fc9bc',
       dark: '#0d9488',
-      contrastText: '#000000',
+      contrastText: mode === 'light' ? '#FFFFFF' : '#000000',
     },
     secondary: {
       main: '#06b6d4',
       light: '#22d3f1',
       dark: '#0e7490',
-      contrastText: '#000000',
+      contrastText: mode === 'light' ? '#FFFFFF' : '#000000',
     },
     background: {
-      default: '#0F172A', // Slate-900
-      paper: '#1E293B', // Slate-800
+      default: mode === 'light' ? '#F8FAFC' : '#0F172A', // Slate-50 / Slate-900
+      paper: mode === 'light' ? '#FFFFFF' : '#1E293B', // White / Slate-800
     },
     text: {
-      primary: '#FFFFFF',
-      secondary: '#94A3B8', // Slate-400
+      primary: mode === 'light' ? '#0F172A' : '#FFFFFF', // Slate-900 / White
+      secondary: mode === 'light' ? '#64748B' : '#94A3B8', // Slate-500 / Slate-400
     },
     error: {
       main: '#EF4444', // Red-500
@@ -81,7 +82,7 @@ const theme = createTheme({
     success: {
       main: '#10B981', // Emerald-500
     },
-    divider: '#334155', // Slate-700
+    divider: mode === 'light' ? '#E2E8F0' : '#334155', // Slate-200 / Slate-700
   },
   typography: {
     fontFamily: 'Inter, system-ui, Avenir, Helvetica, Arial, sans-serif',
@@ -170,8 +171,8 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 12,
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          border: '1px solid #334155',
+          boxShadow: mode === 'light' ? '0 4px 6px rgba(0, 0, 0, 0.1)' : '0 4px 6px rgba(0, 0, 0, 0.3)',
+          border: `1px solid ${mode === 'light' ? '#E2E8F0' : '#334155'}`,
         },
       },
     },
@@ -205,7 +206,7 @@ const theme = createTheme({
         root: {
           '& .MuiOutlinedInput-root': {
             '& fieldset': {
-              borderColor: '#334155',
+              borderColor: mode === 'light' ? '#E2E8F0' : '#334155',
             },
             '&:hover fieldset': {
               borderColor: '#1fb8aa',
@@ -227,8 +228,10 @@ const theme = createTheme({
   },
 });
 
-// eslint-disable-next-line react-refresh/only-export-components
-const RootComponent: React.FC = () => {
+const ThemedApp: React.FC = () => {
+  const { mode } = useThemeMode();
+  const theme = createAppTheme(mode);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -240,6 +243,15 @@ const RootComponent: React.FC = () => {
         </QueryClientProvider>
       </SnackbarProvider>
     </ThemeProvider>
+  );
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+const RootComponent: React.FC = () => {
+  return (
+    <ThemeContextProvider>
+      <ThemedApp />
+    </ThemeContextProvider>
   );
 };
 
