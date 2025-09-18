@@ -6,6 +6,7 @@ import IntegrationsIcon from '../components/svg/IntegrationsIcon';
 import ReportsIcon from '../components/svg/ReportsIcon';
 import AutomationIcon from '../components/svg/AutomationIcon';
 import DashboardIcon from '../components/svg/DashboardIcon';
+import CookieBanner from '../components/cookie-banner';
 
 export const title = 'Invoice Analytics';
 export const description = 'Gain Deep Insights into Your Invoices';
@@ -417,6 +418,7 @@ export default function LandingPage({ appUrl = '/app' }: LandingPageProps): Reac
           </div>
         </div>
       </footer>
+      <CookieBanner />
     </div>
   );
 }
