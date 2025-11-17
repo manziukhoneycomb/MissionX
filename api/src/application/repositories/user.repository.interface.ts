@@ -20,6 +20,7 @@ export interface IUserRepository {
     delete(id: string): Promise<boolean>;
     activate(id: string): Promise<void>;
     deactivate(id: string): Promise<void>;
+    setSubId(id: string, subId: string): Promise<void>;
 }
 
 export const USER_REPOSITORY = 'IUserRepository';

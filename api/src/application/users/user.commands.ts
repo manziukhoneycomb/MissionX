@@ -332,6 +332,43 @@ export class UserCommands implements IUserCommands {
         return updatedDto;
     }
 
+    async updateUserRole(
+        userId: string,
+        roleId: string,
+        requestingUserTenantId?: string,
+        isSuperAdmin: boolean = false,
+    ): Promise<UserDto> {
+        const userToUpdate = await this.userRepository.findById(userId);
+
+        if (!userToUpdate) {
+            throw new NotFoundException(`User with ID ${userId} not found`);
+        }
+
+        if (
+            !isSuperAdmin &&
+            requestingUserTenantId !== undefined &&
+            userToUpdate.tenantId !== requestingUserTenantId
+        ) {
+            throw new ForbiddenException('Cannot update user from different tenant.');
+        }
+
+        const role = await this.roleRepository.findById(roleId);
+        if (!role) {
+            throw new NotFoundException(`Role with ID ${roleId} not found`);
+        }
+
+        await this.validateRoleAssignmentPermissions(
+            [roleId],
+            isSuperAdmin,
+            userToUpdate.roles?.map((r) => r.name),
+        );
+
+        const updateDto = new UpdateUserDto();
+        updateDto.roleIds = [roleId];
+
+        return this.updateUser(userId, updateDto, requestingUserTenantId, isSuperAdmin);
+    }
+
     async deleteUser(
         id: string,
         requestingUserTenantId?: string,

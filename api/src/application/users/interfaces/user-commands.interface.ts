@@ -11,6 +11,12 @@ export interface IUserCommands {
         requestingUserTenantId?: string,
         isSuperAdmin?: boolean,
     ): Promise<UserDto>;
+    updateUserRole(
+        userId: string,
+        roleId: string,
+        requestingUserTenantId?: string,
+        isSuperAdmin?: boolean,
+    ): Promise<UserDto>;
     deleteUser(id: string, requestingUserTenantId?: string, isSuperAdmin?: boolean): Promise<void>;
     activateUser(
         id: string,
