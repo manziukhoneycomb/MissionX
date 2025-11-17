@@ -27,6 +27,7 @@ import {
 } from '../../application/users/dto/create-user.dto';
 import { UpdateUserDto } from '../../application/users/dto/update-user.dto';
 import { UserDto } from '../../application/users/dto/user.dto';
+import { InviteUserDto } from '../../application/users/dto/invite-user.dto';
 import { RoleName } from '../../domain/enums/role-name.enum';
 import { Authorize } from '../../infrastructure/auth/decorators/authorize.decorator';
 import { RequestWithTenant } from 'src/infrastructure/middleware/request-with-tenant.interface';
@@ -239,5 +240,34 @@ export class UserController {
             this._getRequestingUserContext(req);
 
         return this.userCommands.deactivateUser(id, tenantId, isSuperAdmin);
+    }
+
+    @Post('invite')
+    @Authorize(RoleName.ADMIN)
+    @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({ 
+        summary: 'Invite user to tenant', 
+        description: 'Sends an invitation to join the tenant with specified roles' 
+    })
+    @ApiBody({ type: InviteUserDto })
+    @ApiResponse({
+        status: HttpStatus.CREATED,
+        description: 'User invitation sent successfully',
+    })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    @ApiForbiddenResponse({ 
+        description: 'Forbidden - requires admin role or missing tenant information' 
+    })
+    async inviteUser(
+        @Body() inviteUserDto: InviteUserDto,
+        @Req() req: RequestWithTenant,
+    ): Promise<void> {
+        const tenantId = req.tenantId;
+
+        if (tenantId === undefined) {
+            throw new ForbiddenException('Admin user must belong to a tenant.');
+        }
+
+        return this.userCommands.inviteUser(inviteUserDto, tenantId);
     }
 }
