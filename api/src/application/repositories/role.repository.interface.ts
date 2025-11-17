@@ -6,6 +6,7 @@ export interface IRoleRepository {
     findById(id: string): Promise<Role | null>;
     findAll(): Promise<Role[]>;
     findByIds(ids: string[]): Promise<Role[]>;
+    findByNames(names: RoleName[]): Promise<Role[]>;
 }
 
 export const ROLE_REPOSITORY = 'IRoleRepository';

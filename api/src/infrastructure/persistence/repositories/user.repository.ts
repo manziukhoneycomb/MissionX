@@ -137,4 +137,16 @@ export class UserRepository implements IUserRepository {
 
         await this.ormRepository.save(user);
     }
+
+    async setSubId(id: string, subId: string): Promise<void> {
+        const user = await this.findById(id);
+
+        if (!user) {
+            this.logger.warn(`User with ID ${id} not found for subId update.`);
+            return;
+        }
+
+        user.subId = subId;
+        await this.ormRepository.save(user);
+    }
 }

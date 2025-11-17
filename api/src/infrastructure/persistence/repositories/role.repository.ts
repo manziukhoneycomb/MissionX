@@ -30,4 +30,11 @@ export class RoleRepository implements IRoleRepository {
         }
         return this.ormRepository.findBy({ id: In(ids) });
     }
+
+    async findByNames(names: RoleName[]): Promise<Role[]> {
+        if (names.length === 0) {
+            return [];
+        }
+        return this.ormRepository.findBy({ name: In(names) });
+    }
 }
