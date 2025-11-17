@@ -15,6 +15,7 @@ import { IUserCommands } from './interfaces/user-commands.interface';
 import { CreateUserDto, CreateUserBySuperAdminDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserDto } from './dto/user.dto';
+import { InviteUserDto } from './dto/invite-user.dto';
 import { RoleDto } from '../roles/dto/role.dto';
 import { TenantDto } from '../tenants/dto/tenant.dto';
 import { clerkClient } from '@clerk/clerk-sdk-node';
@@ -514,6 +515,46 @@ export class UserCommands implements IUserCommands {
 
         if (!isAssignerSuperAdmin && currentVictimRoles?.includes(RoleName.SUPER_ADMIN)) {
             throw new ForbiddenException('Cannot change roles of a Super Admin.');
+        }
+    }
+
+    async inviteUser(dto: InviteUserDto, tenantId: string): Promise<void> {
+        await this.validateUserDoesNotExist(dto.email);
+        await this.validateRoleAssignmentPermissions(dto.roleIds, false);
+
+        const roles = await this.roleRepository.findByIds(dto.roleIds);
+        
+        if (roles.length !== dto.roleIds.length) {
+            throw new BadRequestException('One or more specified role IDs are invalid.');
+        }
+
+        const roleNames = roles.map((r) => r.name);
+
+        try {
+            const invitation = await clerkClient.invitations.createInvitation({
+                emailAddress: dto.email,
+                publicMetadata: {
+                    roles: roleNames,
+                    tenantId: tenantId,
+                },
+                ignoreExisting: false,
+            });
+
+            this.logger.log(
+                `Successfully sent invitation ${invitation.id} to ${dto.email} for tenant ${tenantId} with roles: ${roleNames.join(', ')}`
+            );
+        } catch (error: unknown) {
+            const { message, stack } = extractErrorInfo(
+                error,
+                'Unknown error during invitation creation',
+            );
+            this.logger.error(
+                `Failed to send invitation to ${dto.email}. Error: ${message}`,
+                stack,
+            );
+            throw new InternalServerErrorException(
+                'Failed to send user invitation.',
+            );
         }
     }
 }
