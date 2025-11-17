@@ -16,6 +16,8 @@ import { LlmModule } from '../../infrastructure/llm/modules/llm.module';
 import { AiController } from '../controllers/ai.controller';
 import { InvoiceModule } from '../../application/invoices/invoice.module';
 import { InvoiceController } from '../controllers/invoice.controller';
+import { AnalyticsModule } from '../../application/analytics/analytics.module';
+import { AnalyticsController } from '../controllers/analytics.controller';
 
 @Module({
     imports: [
@@ -29,6 +31,7 @@ import { InvoiceController } from '../controllers/invoice.controller';
         SecretsModule,
         LlmModule,
         InvoiceModule,
+        AnalyticsModule,
     ],
     controllers: [
         RolesController,
@@ -37,6 +40,7 @@ import { InvoiceController } from '../controllers/invoice.controller';
         SecretsController,
         AiController,
         InvoiceController,
+        AnalyticsController,
     ],
     providers: [Logger],
 })

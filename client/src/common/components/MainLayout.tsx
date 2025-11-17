@@ -19,6 +19,13 @@ import {
 } from '@mui/material';
 import { Theme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
+import {
+  Analytics as AnalyticsIcon,
+  Assignment as InvoiceIcon,
+  Business as TenantIcon,
+  People as UsersIcon,
+  Security as SecretsIcon,
+} from '@mui/icons-material';
 import CustomUserButton from './CustomUserButton';
 import useUserRoles from '../hooks/useUserRoles';
 import { ROLES } from '../constants/roles';
@@ -44,10 +51,11 @@ const MainLayout: React.FC = () => {
   };
 
   const navItems: NavItem[] = [
-    { label: 'Invoices', path: '/invoice-management', roles: [ROLES.SUPER_ADMIN] },
-    { label: 'Tenants', path: '/tenant-management', roles: [ROLES.SUPER_ADMIN] },
-    { label: 'Users', path: '/user-management', roles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] },
-    { label: 'Secrets', path: '/secrets', roles: [ROLES.ADMIN] },
+    { label: 'Analytics', path: '/analytics', icon: <AnalyticsIcon />, roles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] },
+    { label: 'Invoices', path: '/invoice-management', icon: <InvoiceIcon />, roles: [ROLES.SUPER_ADMIN] },
+    { label: 'Tenants', path: '/tenant-management', icon: <TenantIcon />, roles: [ROLES.SUPER_ADMIN] },
+    { label: 'Users', path: '/user-management', icon: <UsersIcon />, roles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] },
+    { label: 'Secrets', path: '/secrets', icon: <SecretsIcon />, roles: [ROLES.ADMIN] },
   ];
 
   const filteredNavItems = navItems.filter((item) => {
