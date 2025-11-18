@@ -240,4 +240,148 @@ export class UserController {
 
         return this.userCommands.deactivateUser(id, tenantId, isSuperAdmin);
     }
+
+    @Post(':tenantId/users/invite')
+    @Authorize(RoleName.ADMIN, RoleName.SUPER_ADMIN)
+    @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({
+        summary: 'Invite user to tenant',
+        description: 'Send invitation to user to join specific tenant',
+    })
+    @ApiParam({
+        name: 'tenantId',
+        description: 'Tenant ID',
+        example: '123e4567-e89b-12d3-a456-426614174000',
+    })
+    @ApiBody({ type: CreateUserDto })
+    @ApiResponse({
+        status: HttpStatus.CREATED,
+        description: 'User invitation sent successfully',
+        type: UserDto,
+    })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    @ApiForbiddenResponse({ description: 'Forbidden - requires admin role' })
+    async inviteUserToTenant(
+        @Param('tenantId') tenantId: string,
+        @Body() inviteUserDto: CreateUserDto,
+        @Req() req: RequestWithTenant,
+    ): Promise<UserDto> {
+        const { isSuperAdmin, tenantId: requestTenantId }: RequestingUserContext =
+            this._getRequestingUserContext(req);
+
+        if (!isSuperAdmin && requestTenantId !== tenantId) {
+            throw new ForbiddenException('Admin can only invite users to their own tenant.');
+        }
+
+        return this.userCommands.createUser(inviteUserDto, tenantId);
+    }
+
+    @Get(':tenantId/users')
+    @Authorize(RoleName.ADMIN, RoleName.SUPER_ADMIN)
+    @ApiOperation({
+        summary: 'Get all users in tenant',
+        description: 'Retrieves all users for a specific tenant',
+    })
+    @ApiParam({
+        name: 'tenantId',
+        description: 'Tenant ID',
+        example: '123e4567-e89b-12d3-a456-426614174000',
+    })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'List of tenant users retrieved successfully',
+        type: [UserDto],
+    })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    @ApiForbiddenResponse({ description: 'Forbidden - requires admin role' })
+    async getTenantUsers(
+        @Param('tenantId') tenantId: string,
+        @Req() req: RequestWithTenant,
+    ): Promise<UserDto[]> {
+        const { isSuperAdmin, tenantId: requestTenantId }: RequestingUserContext =
+            this._getRequestingUserContext(req);
+
+        if (!isSuperAdmin && requestTenantId !== tenantId) {
+            throw new ForbiddenException('Admin can only view users in their own tenant.');
+        }
+
+        return this.userQueries.findAllUsersByTenant(tenantId);
+    }
+
+    @Patch(':tenantId/users/:userId')
+    @Authorize(RoleName.ADMIN, RoleName.SUPER_ADMIN)
+    @ApiOperation({
+        summary: 'Update user in tenant',
+        description: 'Updates a user within a specific tenant',
+    })
+    @ApiParam({
+        name: 'tenantId',
+        description: 'Tenant ID',
+        example: '123e4567-e89b-12d3-a456-426614174000',
+    })
+    @ApiParam({
+        name: 'userId',
+        description: 'User ID',
+        example: '123e4567-e89b-12d3-a456-426614174001',
+    })
+    @ApiBody({ type: UpdateUserDto })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'User updated successfully',
+        type: UserDto,
+    })
+    @ApiNotFoundResponse({ description: 'User not found' })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    @ApiForbiddenResponse({ description: 'Forbidden - user not in tenant or insufficient permissions' })
+    async updateTenantUser(
+        @Param('tenantId') tenantId: string,
+        @Param('userId') userId: string,
+        @Body() updateUserDto: UpdateUserDto,
+        @Req() req: RequestWithTenant,
+    ): Promise<UserDto> {
+        const { isSuperAdmin, tenantId: requestTenantId }: RequestingUserContext =
+            this._getRequestingUserContext(req);
+
+        if (!isSuperAdmin && requestTenantId !== tenantId) {
+            throw new ForbiddenException('Admin can only update users in their own tenant.');
+        }
+
+        return this.userCommands.updateUser(userId, updateUserDto, tenantId, isSuperAdmin);
+    }
+
+    @Delete(':tenantId/users/:userId')
+    @Authorize(RoleName.ADMIN, RoleName.SUPER_ADMIN)
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({
+        summary: 'Remove user from tenant',
+        description: 'Removes a user from a specific tenant',
+    })
+    @ApiParam({
+        name: 'tenantId',
+        description: 'Tenant ID',
+        example: '123e4567-e89b-12d3-a456-426614174000',
+    })
+    @ApiParam({
+        name: 'userId',
+        description: 'User ID',
+        example: '123e4567-e89b-12d3-a456-426614174001',
+    })
+    @ApiNoContentResponse({ description: 'User removed from tenant successfully' })
+    @ApiNotFoundResponse({ description: 'User not found' })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    @ApiForbiddenResponse({ description: 'Forbidden - user not in tenant or insufficient permissions' })
+    async removeUserFromTenant(
+        @Param('tenantId') tenantId: string,
+        @Param('userId') userId: string,
+        @Req() req: RequestWithTenant,
+    ): Promise<void> {
+        const { isSuperAdmin, tenantId: requestTenantId }: RequestingUserContext =
+            this._getRequestingUserContext(req);
+
+        if (!isSuperAdmin && requestTenantId !== tenantId) {
+            throw new ForbiddenException('Admin can only remove users from their own tenant.');
+        }
+
+        return this.userCommands.deleteUser(userId, tenantId, isSuperAdmin);
+    }
 }
