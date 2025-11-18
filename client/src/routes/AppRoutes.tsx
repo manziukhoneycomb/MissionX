@@ -7,6 +7,7 @@ import SecretsPage from '../modules/secrets/components/SecretsPage';
 import ProtectedRoute from '../common/components/ProtectedRoute';
 import { ROLES } from '../common/constants/roles';
 import InvoiceManagementPage from '../modules/invoices/components/InvoiceManagementPage';
+import AnalyticsPage from '../modules/analytics/AnalyticsPage';
 
 const HomePagePlaceholder: React.FC = () => <div>Home Page - Welcome!</div>;
 
@@ -22,6 +23,7 @@ const AppRoutes: React.FC = () => {
           </Route>
           <Route element={<ProtectedRoute requiredRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
             <Route path="/user-management" element={<UserManagementPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
           </Route>
           <Route element={<ProtectedRoute requiredRoles={[ROLES.ADMIN]} />}>
             <Route path="/secrets" element={<SecretsPage />} />
