@@ -16,6 +16,12 @@ import { LlmModule } from '../../infrastructure/llm/modules/llm.module';
 import { AiController } from '../controllers/ai.controller';
 import { InvoiceModule } from '../../application/invoices/invoice.module';
 import { InvoiceController } from '../controllers/invoice.controller';
+import { TaskModule } from '../../application/tasks/task.module';
+import { TaskController } from '../controllers/task.controller';
+import { AzureDevOpsModule } from '../../infrastructure/azure-devops/azure-devops.module';
+import { AzureDevOpsAuthController } from '../controllers/azure-devops-auth.controller';
+import { WebhookController } from '../controllers/webhook.controller';
+import { AzureDevOpsSyncService } from '../../application/tasks/sync/azure-devops-sync.service';
 
 @Module({
     imports: [
@@ -29,6 +35,8 @@ import { InvoiceController } from '../controllers/invoice.controller';
         SecretsModule,
         LlmModule,
         InvoiceModule,
+        TaskModule,
+        AzureDevOpsModule,
     ],
     controllers: [
         RolesController,
@@ -37,8 +45,11 @@ import { InvoiceController } from '../controllers/invoice.controller';
         SecretsController,
         AiController,
         InvoiceController,
+        TaskController,
+        AzureDevOpsAuthController,
+        WebhookController,
     ],
-    providers: [Logger],
+    providers: [Logger, AzureDevOpsSyncService],
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
