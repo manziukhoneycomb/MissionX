@@ -7,11 +7,15 @@ import {
     Param,
     Delete,
     Req,
+    Res,
+    Query,
     HttpCode,
     HttpStatus,
     Inject,
     ForbiddenException,
+    BadRequestException,
 } from '@nestjs/common';
+import { Response } from 'express';
 
 import {
     IUserCommands,
@@ -30,6 +34,7 @@ import { UserDto } from '../../application/users/dto/user.dto';
 import { RoleName } from '../../domain/enums/role-name.enum';
 import { Authorize } from '../../infrastructure/auth/decorators/authorize.decorator';
 import { RequestWithTenant } from 'src/infrastructure/middleware/request-with-tenant.interface';
+import { IOAuthService, OAUTH_SERVICE } from '../../infrastructure/azure-devops/auth/interfaces/oauth.service.interface';
 import {
     ApiTags,
     ApiOperation,
@@ -56,6 +61,7 @@ export class UserController {
     constructor(
         @Inject(USER_COMMANDS) private readonly userCommands: IUserCommands,
         @Inject(USER_QUERIES) private readonly userQueries: IUserQueries,
+        @Inject(OAUTH_SERVICE) private readonly oauthService: IOAuthService,
     ) {}
 
     private _getRequestingUserContext(req: RequestWithTenant): RequestingUserContext {
@@ -239,5 +245,100 @@ export class UserController {
             this._getRequestingUserContext(req);
 
         return this.userCommands.deactivateUser(id, tenantId, isSuperAdmin);
+    }
+
+    @Get('azure-devops/authorize')
+    @ApiOperation({
+        summary: 'Initiate Azure DevOps OAuth authorization',
+        description: 'Redirects user to Azure DevOps consent page',
+    })
+    @ApiResponse({
+        status: HttpStatus.FOUND,
+        description: 'Redirect to Azure DevOps authorization URL',
+    })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    async authorizeAzureDevOps(@Req() req: RequestWithTenant, @Res() res: Response): Promise<void> {
+        const state = req.user?.id || 'unknown';
+        const authUrl = this.oauthService.getAuthorizationUrl(state);
+        res.redirect(authUrl);
+    }
+
+    @Get('azure-devops/callback')
+    @ApiOperation({
+        summary: 'Azure DevOps OAuth callback',
+        description: 'Handles the OAuth callback from Azure DevOps',
+    })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'OAuth authorization successful',
+    })
+    @ApiResponse({
+        status: HttpStatus.BAD_REQUEST,
+        description: 'Invalid authorization code or state',
+    })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    async azureDevOpsCallback(
+        @Query('code') code: string,
+        @Query('state') state: string,
+        @Req() req: RequestWithTenant,
+        @Res() res: Response,
+    ): Promise<void> {
+        if (!code) {
+            throw new BadRequestException('Authorization code is required');
+        }
+
+        if (state !== req.user?.id) {
+            throw new BadRequestException('Invalid state parameter');
+        }
+
+        try {
+            const tokens = await this.oauthService.exchangeCodeForToken(code, state);
+            await this.oauthService.storeTokens(req.user!.id, req.tenantId!, tokens);
+            
+            // Redirect to success page or close popup
+            res.send(`
+                <html>
+                    <body>
+                        <script>
+                            if (window.opener) {
+                                window.opener.postMessage({type: 'AZURE_DEVOPS_AUTH_SUCCESS'}, '*');
+                                window.close();
+                            } else {
+                                window.location.href = '/dashboard?azure_devops_connected=true';
+                            }
+                        </script>
+                        <p>Azure DevOps authorization successful. You can close this window.</p>
+                    </body>
+                </html>
+            `);
+        } catch (error) {
+            res.status(HttpStatus.BAD_REQUEST).send(`
+                <html>
+                    <body>
+                        <script>
+                            if (window.opener) {
+                                window.opener.postMessage({type: 'AZURE_DEVOPS_AUTH_ERROR', error: '${error.message}'}, '*');
+                                window.close();
+                            } else {
+                                window.location.href = '/dashboard?azure_devops_error=true';
+                            }
+                        </script>
+                        <p>Authorization failed: ${error.message}</p>
+                    </body>
+                </html>
+            `);
+        }
+    }
+
+    @Post('azure-devops/disconnect')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({
+        summary: 'Disconnect Azure DevOps integration',
+        description: 'Revokes Azure DevOps access tokens and removes integration',
+    })
+    @ApiNoContentResponse({ description: 'Azure DevOps integration disconnected successfully' })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    async disconnectAzureDevOps(@Req() req: RequestWithTenant): Promise<void> {
+        await this.oauthService.revokeToken(req.user!.id);
     }
 }
