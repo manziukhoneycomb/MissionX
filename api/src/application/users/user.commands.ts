@@ -15,10 +15,12 @@ import { IUserCommands } from './interfaces/user-commands.interface';
 import { CreateUserDto, CreateUserBySuperAdminDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserDto } from './dto/user.dto';
+import { InviteUserDto, InviteUserResponseDto } from './dto/invite-user.dto';
 import { RoleDto } from '../roles/dto/role.dto';
 import { TenantDto } from '../tenants/dto/tenant.dto';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { extractErrorInfo } from '../../domain/utils/error.utils';
+import { ClerkInviteService } from './services/clerk-invite.service';
 
 @Injectable()
 export class UserCommands implements IUserCommands {
@@ -29,6 +31,7 @@ export class UserCommands implements IUserCommands {
         private readonly userRepository: IUserRepository,
         @Inject(ROLE_REPOSITORY)
         private readonly roleRepository: IRoleRepository,
+        private readonly clerkInviteService: ClerkInviteService,
     ) {}
 
     private mapToDto(user: User | null): UserDto | null {
@@ -515,5 +518,36 @@ export class UserCommands implements IUserCommands {
         if (!isAssignerSuperAdmin && currentVictimRoles?.includes(RoleName.SUPER_ADMIN)) {
             throw new ForbiddenException('Cannot change roles of a Super Admin.');
         }
+    }
+
+    async inviteUserToTenant(dto: InviteUserDto, tenantId: string): Promise<InviteUserResponseDto> {
+        await this.validateRoleAssignmentPermissions(dto.roleIds, false);
+
+        const roles = await this.roleRepository.findByIds(dto.roleIds);
+        if (roles.length !== dto.roleIds.length) {
+            throw new BadRequestException('One or more specified role IDs are invalid.');
+        }
+
+        const roleNames = roles.map(role => role.name);
+
+        const hasInvalidRole = roleNames.some(roleName => 
+            roleName === RoleName.SUPER_ADMIN
+        );
+
+        if (hasInvalidRole) {
+            throw new ForbiddenException('Cannot invite users with Super Admin role.');
+        }
+
+        return this.clerkInviteService.inviteUserToTenant(dto, tenantId, roleNames);
+    }
+
+    async revokeInvitation(invitationId: string): Promise<void> {
+        const invitation = await this.clerkInviteService.getInvitationStatus(invitationId);
+        
+        if (!invitation) {
+            throw new NotFoundException(`Invitation with ID ${invitationId} not found.`);
+        }
+
+        return this.clerkInviteService.revokeInvitation(invitationId);
     }
 }

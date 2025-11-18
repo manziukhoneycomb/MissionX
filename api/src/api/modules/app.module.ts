@@ -9,7 +9,7 @@ import { RolesModule } from '../../application/roles/roles.module';
 import { TenantMiddleware } from '../../infrastructure/middleware/tenant.middleware';
 import { RolesController } from '../controllers/roles.controller';
 import { TenantController } from '../controllers/tenant.controller';
-import { UserController } from '../controllers/user.controller';
+import { UserController, TenantUserController } from '../controllers/user.controller';
 import { SecretsModule } from '../../application/secrets/secrets.module';
 import { SecretsController } from '../controllers/secrets.controller';
 import { LlmModule } from '../../infrastructure/llm/modules/llm.module';
@@ -34,6 +34,7 @@ import { InvoiceController } from '../controllers/invoice.controller';
         RolesController,
         TenantController,
         UserController,
+        TenantUserController,
         SecretsController,
         AiController,
         InvoiceController,
