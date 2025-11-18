@@ -7,6 +7,7 @@ import SecretsPage from '../modules/secrets/components/SecretsPage';
 import ProtectedRoute from '../common/components/ProtectedRoute';
 import { ROLES } from '../common/constants/roles';
 import InvoiceManagementPage from '../modules/invoices/components/InvoiceManagementPage';
+import TenantAdminPage from '../modules/tenant-admin/TenantAdminPage';
 
 const HomePagePlaceholder: React.FC = () => <div>Home Page - Welcome!</div>;
 
@@ -24,6 +25,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/user-management" element={<UserManagementPage />} />
           </Route>
           <Route element={<ProtectedRoute requiredRoles={[ROLES.ADMIN]} />}>
+            <Route path="/tenant-admin" element={<TenantAdminPage />} />
             <Route path="/secrets" element={<SecretsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
