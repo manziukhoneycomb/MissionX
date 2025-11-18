@@ -11,6 +11,8 @@ import { ROLES_KEY } from '../decorators/authorize.decorator';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { Request } from 'express';
 import { extractErrorInfo } from '../../../domain/utils/error.utils';
+import { RequestWithTeam } from '../../middleware/request-with-team.interface';
+import { RoleHierarchyUtil } from '../../../domain/utils/role-hierarchy.util';
 
 interface RequestWithUserRoles extends Request {
     userRoles?: RoleName[];
@@ -29,7 +31,7 @@ export class RolesGuard implements CanActivate {
                 context.getClass(),
             ]);
 
-            const request: RequestWithUserRoles = context.switchToHttp().getRequest();
+            const request: RequestWithTeam = context.switchToHttp().getRequest();
             const token: string | undefined = request.headers.authorization;
 
             if (!token) {
@@ -49,9 +51,8 @@ export class RolesGuard implements CanActivate {
                 return true;
             }
 
-            const hasRequiredRole = requiredRoles.some((role) =>
-                userRoles.some((userRole) => userRole === role),
-            );
+            const hasRequiredRole = this.checkGlobalRoles(userRoles, requiredRoles) || 
+                                   this.checkTeamRolesInContext(request, requiredRoles);
 
             if (!hasRequiredRole) {
                 throw new ForbiddenException('Insufficient permissions');
@@ -64,5 +65,28 @@ export class RolesGuard implements CanActivate {
         }
 
         return true;
+    }
+
+    private checkGlobalRoles(userRoles: RoleName[], requiredRoles: RoleName[]): boolean {
+        return requiredRoles.some((role) =>
+            userRoles.some((userRole) => userRole === role ||
+                (RoleHierarchyUtil.isGlobalRole(userRole) && 
+                 RoleHierarchyUtil.hasHigherPrecedence(userRole, role))
+            ),
+        );
+    }
+
+    private checkTeamRolesInContext(request: RequestWithTeam, requiredRoles: RoleName[]): boolean {
+        if (!request.teamContext?.isTeamMember) {
+            return false;
+        }
+
+        const { teamRoles } = request.teamContext;
+        return requiredRoles.some((role) =>
+            teamRoles.some((teamRole) => 
+                teamRole === role ||
+                RoleHierarchyUtil.hasHigherPrecedence(teamRole, role)
+            ),
+        );
     }
 }
