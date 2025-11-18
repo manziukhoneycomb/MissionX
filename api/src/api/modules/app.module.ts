@@ -16,6 +16,8 @@ import { LlmModule } from '../../infrastructure/llm/modules/llm.module';
 import { AiController } from '../controllers/ai.controller';
 import { InvoiceModule } from '../../application/invoices/invoice.module';
 import { InvoiceController } from '../controllers/invoice.controller';
+import { WebhookModule } from '../../application/webhooks/webhook.module';
+import { WebhookController } from '../controllers/webhook.controller';
 
 @Module({
     imports: [
@@ -29,6 +31,7 @@ import { InvoiceController } from '../controllers/invoice.controller';
         SecretsModule,
         LlmModule,
         InvoiceModule,
+        WebhookModule,
     ],
     controllers: [
         RolesController,
@@ -37,6 +40,7 @@ import { InvoiceController } from '../controllers/invoice.controller';
         SecretsController,
         AiController,
         InvoiceController,
+        WebhookController,
     ],
     providers: [Logger],
 })
