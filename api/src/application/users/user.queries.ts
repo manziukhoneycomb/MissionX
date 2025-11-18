@@ -10,12 +10,14 @@ import { User } from '../../domain/entities/user.entity';
 import { IUserQueries } from './interfaces/user-queries.interface';
 import { UserDto } from './dto/user.dto';
 import { RoleDto } from '../roles/dto/role.dto';
+import { ClerkInviteService, InvitationStatus } from './services/clerk-invite.service';
 
 @Injectable()
 export class UserQueries implements IUserQueries {
     constructor(
         @Inject(USER_REPOSITORY)
         private readonly userRepository: IUserRepository,
+        private readonly clerkInviteService: ClerkInviteService,
     ) {}
 
     private mapToDto(user: User | null): UserDto | null {
@@ -92,5 +94,13 @@ export class UserQueries implements IUserQueries {
         const user = await this.userRepository.findBySubId(subId);
 
         return this.mapToDto(user);
+    }
+
+    async findTenantInvitations(tenantId: string): Promise<InvitationStatus[]> {
+        return this.clerkInviteService.listTenantInvitations(tenantId);
+    }
+
+    async findInvitationById(invitationId: string): Promise<InvitationStatus | null> {
+        return this.clerkInviteService.getInvitationStatus(invitationId);
     }
 }
