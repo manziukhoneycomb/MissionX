@@ -28,5 +28,4 @@ export class CreateInvoicesTables1748425994516 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "invoices"`);
         await queryRunner.query(`DROP TABLE "invoice_items"`);
     }
-    q;
 }
