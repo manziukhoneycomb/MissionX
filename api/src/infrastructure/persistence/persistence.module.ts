@@ -4,15 +4,19 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Tenant } from '../../domain/entities/tenant.entity';
 import { Role } from '../../domain/entities/role.entity';
 import { User } from '../../domain/entities/user.entity';
+import { Team } from '../../domain/entities/team.entity';
+import { TeamMemberRole } from '../../domain/entities/team-member-role.entity';
 import { TenantRepository } from './repositories/tenant.repository';
 import { RoleRepository } from './repositories/role.repository';
 import { UserRepository } from './repositories/user.repository';
+import { TeamRepository } from './repositories/team.repository';
 import { getTypeOrmConfig } from './typeorm.config';
 import { TENANT_REPOSITORY } from '../../application/repositories/tenant.repository.interface';
 import { ROLE_REPOSITORY } from '../../application/repositories/role.repository.interface';
 import { USER_REPOSITORY } from '../../application/repositories/user.repository.interface';
+import { TEAM_REPOSITORY } from '../../application/repositories/team.repository.interface';
 
-const entities = [Tenant, Role, User];
+const entities = [Tenant, Role, User, Team, TeamMemberRole];
 
 const providers = [
     {
@@ -26,6 +30,10 @@ const providers = [
     {
         provide: USER_REPOSITORY,
         useClass: UserRepository,
+    },
+    {
+        provide: TEAM_REPOSITORY,
+        useClass: TeamRepository,
     },
 ];
 
