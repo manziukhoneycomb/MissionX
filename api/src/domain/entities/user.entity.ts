@@ -6,11 +6,13 @@ import {
     JoinColumn,
     ManyToMany,
     JoinTable,
+    OneToMany,
     CreateDateColumn,
     UpdateDateColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import { Role } from './role.entity';
+import { TeamRole } from './team-role.entity';
 
 @Entity('users')
 export class User {
@@ -51,6 +53,9 @@ export class User {
         inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
     })
     roles: Role[];
+
+    @OneToMany(() => TeamRole, (teamRole) => teamRole.user)
+    teamRoles?: TeamRole[];
 
     @CreateDateColumn()
     createdAt: Date;
