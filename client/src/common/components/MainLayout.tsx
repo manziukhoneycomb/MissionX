@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import { Theme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
 import CustomUserButton from './CustomUserButton';
 import useUserRoles from '../hooks/useUserRoles';
 import { ROLES } from '../constants/roles';
@@ -44,6 +45,7 @@ const MainLayout: React.FC = () => {
   };
 
   const navItems: NavItem[] = [
+    { label: 'Analytics', path: '/analytics', icon: <AnalyticsIcon />, roles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] },
     { label: 'Invoices', path: '/invoice-management', roles: [ROLES.SUPER_ADMIN] },
     { label: 'Tenants', path: '/tenant-management', roles: [ROLES.SUPER_ADMIN] },
     { label: 'Users', path: '/user-management', roles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] },
