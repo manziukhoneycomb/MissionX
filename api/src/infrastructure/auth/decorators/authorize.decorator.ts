@@ -3,6 +3,7 @@ import { RoleName } from 'src/domain/enums/role-name.enum';
 import { RolesGuard } from '../guards/roles.guard';
 
 export const ROLES_KEY = 'roles';
+export const TEAM_ROLES_KEY = 'teamRoles';
 
 /**
  * Decorator to specify which roles are required to access a resource.
