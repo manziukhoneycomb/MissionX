@@ -36,6 +36,13 @@ export class UserRepository implements IUserRepository {
         return this.ormRepository.findOne({ where: { subId }, relations: ['tenant', 'roles'] });
     }
 
+    async findByIdAndTenant(userId: string, tenantId: string): Promise<User | null> {
+        return this.ormRepository.findOne({ 
+            where: { id: userId, tenantId }, 
+            relations: ['tenant', 'roles'] 
+        });
+    }
+
     async findAllByTenantId(tenantId: string): Promise<User[]> {
         return this.ormRepository.find({ where: { tenantId }, relations: ['tenant', 'roles'] });
     }
