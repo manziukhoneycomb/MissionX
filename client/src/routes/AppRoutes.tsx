@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import TenantManagementPage from '../modules/tenants/tenant-management/TenantManagementPage';
 import UserManagementPage from '../modules/users/user-management/UserManagementPage';
+import TeamManagementPage from '../modules/teams/team-management/TeamManagementPage';
 import MainLayout from '../common/components/MainLayout';
 import SecretsPage from '../modules/secrets/components/SecretsPage';
 import ProtectedRoute from '../common/components/ProtectedRoute';
@@ -22,6 +23,7 @@ const AppRoutes: React.FC = () => {
           </Route>
           <Route element={<ProtectedRoute requiredRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN]} />}>
             <Route path="/user-management" element={<UserManagementPage />} />
+            <Route path="/team-management" element={<TeamManagementPage />} />
           </Route>
           <Route element={<ProtectedRoute requiredRoles={[ROLES.ADMIN]} />}>
             <Route path="/secrets" element={<SecretsPage />} />

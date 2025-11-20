@@ -22,6 +22,7 @@ export class TenantMiddleware implements NestMiddleware {
                 const claims = await clerkClient.verifyToken(token);
 
                 req.tenantId = claims.tenantId as string | undefined;
+                req.userId = claims.sub as string | undefined;
             }
         }
 
