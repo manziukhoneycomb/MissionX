@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import { Theme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
+import PeopleIcon from '@mui/icons-material/People';
 import CustomUserButton from './CustomUserButton';
 import useUserRoles from '../hooks/useUserRoles';
 import { ROLES } from '../constants/roles';
@@ -47,6 +48,7 @@ const MainLayout: React.FC = () => {
     { label: 'Invoices', path: '/invoice-management', roles: [ROLES.SUPER_ADMIN] },
     { label: 'Tenants', path: '/tenant-management', roles: [ROLES.SUPER_ADMIN] },
     { label: 'Users', path: '/user-management', roles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] },
+    { label: 'Teams', path: '/teams', icon: <PeopleIcon />, roles: [ROLES.USER, ROLES.ADMIN, ROLES.SUPER_ADMIN] },
     { label: 'Secrets', path: '/secrets', roles: [ROLES.ADMIN] },
   ];
 

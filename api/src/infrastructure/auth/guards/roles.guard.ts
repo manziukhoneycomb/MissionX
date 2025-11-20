@@ -14,6 +14,7 @@ import { extractErrorInfo } from '../../../domain/utils/error.utils';
 
 interface RequestWithUserRoles extends Request {
     userRoles?: RoleName[];
+    userId?: string;
 }
 
 @Injectable()
@@ -38,12 +39,18 @@ export class RolesGuard implements CanActivate {
 
             const claims = await clerkClient.verifyToken(token);
             const userRoles = claims.roles as RoleName[] | undefined;
+            const userId = claims.sub as string | undefined;
 
             if (!userRoles) {
                 throw new ForbiddenException('User roles not found.');
             }
 
+            if (!userId) {
+                throw new ForbiddenException('User ID not found.');
+            }
+
             request.userRoles = userRoles;
+            request.userId = userId;
 
             if (!requiredRoles || requiredRoles.length === 0) {
                 return true;
