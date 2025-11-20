@@ -9,6 +9,7 @@ export interface IUserRepository {
     findById(id: string): Promise<User | null>;
     findByEmail(email: string): Promise<User | null>;
     findBySubId(subId: string): Promise<User | null>;
+    findByIdAndTenant(userId: string, tenantId: string): Promise<User | null>;
     findAllByTenantId(tenantId: string): Promise<User[]>;
     findAll(): Promise<User[]>;
     create(
