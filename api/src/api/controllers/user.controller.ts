@@ -22,6 +22,15 @@ import {
     USER_QUERIES,
 } from '../../application/users/interfaces/user-queries.interface';
 import {
+    IInvitationCommands,
+    INVITATION_COMMANDS,
+} from '../../application/users/interfaces/invitation-commands.interface';
+import {
+    IInvitationQueries,
+    INVITATION_QUERIES,
+} from '../../application/users/interfaces/invitation-queries.interface';
+import { InviteUserDto, InvitationDto } from '../../application/users/dto/invite-user.dto';
+import {
     CreateUserDto,
     CreateUserBySuperAdminDto,
 } from '../../application/users/dto/create-user.dto';
@@ -56,6 +65,8 @@ export class UserController {
     constructor(
         @Inject(USER_COMMANDS) private readonly userCommands: IUserCommands,
         @Inject(USER_QUERIES) private readonly userQueries: IUserQueries,
+        @Inject(INVITATION_COMMANDS) private readonly invitationCommands: IInvitationCommands,
+        @Inject(INVITATION_QUERIES) private readonly invitationQueries: IInvitationQueries,
     ) {}
 
     private _getRequestingUserContext(req: RequestWithTenant): RequestingUserContext {
@@ -239,5 +250,118 @@ export class UserController {
             this._getRequestingUserContext(req);
 
         return this.userCommands.deactivateUser(id, tenantId, isSuperAdmin);
+    }
+
+    @Post('invite')
+    @Authorize(RoleName.ADMIN)
+    @HttpCode(HttpStatus.CREATED)
+    @ApiOperation({
+        summary: 'Invite a user to the tenant',
+        description: 'Sends an invitation to a user to join the tenant',
+    })
+    @ApiBody({ type: InviteUserDto })
+    @ApiResponse({
+        status: HttpStatus.CREATED,
+        description: 'Invitation sent successfully',
+        type: InvitationDto,
+    })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    @ApiForbiddenResponse({
+        description: 'Forbidden - requires admin role or missing tenant information',
+    })
+    async inviteUser(
+        @Body() inviteUserDto: InviteUserDto,
+        @Req() req: RequestWithTenant,
+    ): Promise<InvitationDto> {
+        const tenantId = req.tenantId;
+        const invitedBy = req.userEmail || 'Unknown';
+
+        if (tenantId === undefined) {
+            throw new ForbiddenException('Admin user must belong to a tenant.');
+        }
+
+        return this.invitationCommands.inviteUser(inviteUserDto, tenantId, invitedBy);
+    }
+
+    @Get('invitations')
+    @Authorize(RoleName.ADMIN)
+    @ApiOperation({
+        summary: 'Get all invitations for tenant',
+        description: 'Retrieves all invitations sent by the tenant',
+    })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'List of invitations retrieved successfully',
+        type: [InvitationDto],
+    })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    @ApiForbiddenResponse({ description: 'Forbidden - missing tenant information' })
+    async getInvitations(@Req() req: RequestWithTenant): Promise<InvitationDto[]> {
+        const tenantId = req.tenantId;
+
+        if (tenantId === undefined) {
+            throw new ForbiddenException('Admin user must belong to a tenant.');
+        }
+
+        return this.invitationQueries.findInvitationsByTenant(tenantId);
+    }
+
+    @Patch('invitations/:id/resend')
+    @Authorize(RoleName.ADMIN)
+    @HttpCode(HttpStatus.OK)
+    @ApiOperation({
+        summary: 'Resend invitation',
+        description: 'Resends an existing invitation',
+    })
+    @ApiParam({
+        name: 'id',
+        description: 'Invitation ID',
+        example: '123e4567-e89b-12d3-a456-426614174000',
+    })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'Invitation resent successfully',
+        type: InvitationDto,
+    })
+    @ApiNotFoundResponse({ description: 'Invitation not found' })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    @ApiForbiddenResponse({ description: 'Forbidden - missing tenant information' })
+    async resendInvitation(
+        @Param('id') id: string,
+        @Req() req: RequestWithTenant,
+    ): Promise<InvitationDto> {
+        const tenantId = req.tenantId;
+
+        if (tenantId === undefined) {
+            throw new ForbiddenException('Admin user must belong to a tenant.');
+        }
+
+        return this.invitationCommands.resendInvitation(id, tenantId);
+    }
+
+    @Delete('invitations/:id')
+    @Authorize(RoleName.ADMIN)
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiOperation({
+        summary: 'Cancel invitation',
+        description: 'Cancels a pending invitation',
+    })
+    @ApiParam({
+        name: 'id',
+        description: 'Invitation ID',
+        example: '123e4567-e89b-12d3-a456-426614174000',
+    })
+    @ApiNoContentResponse({ description: 'Invitation cancelled successfully' })
+    @ApiNotFoundResponse({ description: 'Invitation not found' })
+    @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+    @ApiForbiddenResponse({ description: 'Forbidden - missing tenant information' })
+    async cancelInvitation(@Param('id') id: string, @Req() req: RequestWithTenant): Promise<void> {
+        const tenantId = req.tenantId;
+
+        if (tenantId === undefined) {
+            throw new ForbiddenException('Admin user must belong to a tenant.');
+        }
+
+        return this.invitationCommands.cancelInvitation(id, tenantId);
     }
 }
