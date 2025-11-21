@@ -8,23 +8,39 @@ import {
 import { Reflector } from '@nestjs/core';
 import { RoleName } from '../../../domain/enums/role-name.enum';
 import { ROLES_KEY } from '../decorators/authorize.decorator';
+import { TEAM_ROLES_KEY } from '../decorators/team-roles.decorator';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import { Request } from 'express';
 import { extractErrorInfo } from '../../../domain/utils/error.utils';
+import {
+    PermissionResolutionService,
+    UserPermissionContext,
+} from '../permission-resolution.service';
 
 interface RequestWithUserRoles extends Request {
     userRoles?: RoleName[];
+    userPermissionContext?: UserPermissionContext;
+    teamId?: string;
+    tenantId?: string;
 }
 
 @Injectable()
 export class RolesGuard implements CanActivate {
     private readonly logger = new Logger(RolesGuard.name);
 
-    constructor(private reflector: Reflector) {}
+    constructor(
+        private reflector: Reflector,
+        private permissionResolutionService: PermissionResolutionService,
+    ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         try {
             const requiredRoles = this.reflector.getAllAndOverride<RoleName[]>(ROLES_KEY, [
+                context.getHandler(),
+                context.getClass(),
+            ]);
+
+            const requiredTeamRoles = this.reflector.getAllAndOverride<RoleName[]>(TEAM_ROLES_KEY, [
                 context.getHandler(),
                 context.getClass(),
             ]);
@@ -37,32 +53,55 @@ export class RolesGuard implements CanActivate {
             }
 
             const claims = await clerkClient.verifyToken(token);
-            const userRoles = claims.roles as RoleName[] | undefined;
+            const userPermissionContext = this.permissionResolutionService.parseUserRoles(claims);
 
-            if (!userRoles) {
-                throw new ForbiddenException('User roles not found.');
-            }
+            request.userRoles = userPermissionContext.globalRoles;
+            request.userPermissionContext = userPermissionContext;
 
-            request.userRoles = userRoles;
+            const teamId = request.teamId;
 
-            if (!requiredRoles || requiredRoles.length === 0) {
+            if (requiredTeamRoles && requiredTeamRoles.length > 0) {
+                if (!teamId) {
+                    throw new ForbiddenException('Team context required but not provided');
+                }
+
+                const hasTeamPermission =
+                    this.permissionResolutionService.resolveEffectivePermissions(
+                        userPermissionContext,
+                        {
+                            requiredRoles: requiredTeamRoles,
+                            teamId,
+                        },
+                    );
+
+                if (!hasTeamPermission) {
+                    throw new ForbiddenException('Insufficient team permissions');
+                }
+
                 return true;
             }
 
-            const hasRequiredRole = requiredRoles.some((role) =>
-                userRoles.some((userRole) => userRole === role),
-            );
+            if (requiredRoles && requiredRoles.length > 0) {
+                const hasGlobalPermission =
+                    this.permissionResolutionService.resolveEffectivePermissions(
+                        userPermissionContext,
+                        {
+                            requiredRoles,
+                            teamId,
+                        },
+                    );
 
-            if (!hasRequiredRole) {
-                throw new ForbiddenException('Insufficient permissions');
+                if (!hasGlobalPermission) {
+                    throw new ForbiddenException('Insufficient permissions');
+                }
             }
+
+            return true;
         } catch (error: unknown) {
             const { message } = extractErrorInfo(error, 'Unknown authentication error');
             this.logger.error(`Authentication error: ${message}`);
 
             return false;
         }
-
-        return true;
     }
 }
