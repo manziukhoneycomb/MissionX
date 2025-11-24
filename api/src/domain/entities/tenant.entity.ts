@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { User } from './user.entity';
+import { Team } from './team.entity';
 
 @Entity({ name: 'tenants' })
 export class Tenant {
@@ -14,4 +15,7 @@ export class Tenant {
 
     @OneToMany(() => User, (user) => user.tenant)
     users?: User[];
+
+    @OneToMany(() => Team, (team) => team.tenant)
+    teams?: Team[];
 }
