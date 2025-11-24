@@ -16,6 +16,8 @@ import { LlmModule } from '../../infrastructure/llm/modules/llm.module';
 import { AiController } from '../controllers/ai.controller';
 import { InvoiceModule } from '../../application/invoices/invoice.module';
 import { InvoiceController } from '../controllers/invoice.controller';
+import { TeamsModule } from '../../application/teams/teams.module';
+import { TeamsController } from '../controllers/teams.controller';
 
 @Module({
     imports: [
@@ -29,6 +31,7 @@ import { InvoiceController } from '../controllers/invoice.controller';
         SecretsModule,
         LlmModule,
         InvoiceModule,
+        TeamsModule,
     ],
     controllers: [
         RolesController,
@@ -37,6 +40,7 @@ import { InvoiceController } from '../controllers/invoice.controller';
         SecretsController,
         AiController,
         InvoiceController,
+        TeamsController,
     ],
     providers: [Logger],
 })
