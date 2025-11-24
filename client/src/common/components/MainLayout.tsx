@@ -23,6 +23,7 @@ import CustomUserButton from './CustomUserButton';
 import useUserRoles from '../hooks/useUserRoles';
 import { ROLES } from '../constants/roles';
 import InvoiceFileUpload from '../../modules/invoices/components/InvoiceFileUpload';
+import GroupIcon from '@mui/icons-material/Group';
 
 const drawerWidth = 240;
 
@@ -47,6 +48,7 @@ const MainLayout: React.FC = () => {
     { label: 'Invoices', path: '/invoice-management', roles: [ROLES.SUPER_ADMIN] },
     { label: 'Tenants', path: '/tenant-management', roles: [ROLES.SUPER_ADMIN] },
     { label: 'Users', path: '/user-management', roles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] },
+    { label: 'Teams', path: '/teams', icon: <GroupIcon />, roles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] },
     { label: 'Secrets', path: '/secrets', roles: [ROLES.ADMIN] },
   ];
 
