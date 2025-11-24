@@ -1,0 +1,2 @@
+export const TEAM_REPOSITORY = 'TEAM_REPOSITORY';
+export const TEAM_SERVICE = 'TEAM_SERVICE';
