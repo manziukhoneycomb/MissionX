@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import { Role } from './role.entity';
+import { Team } from './team.entity';
 
 @Entity('users')
 export class User {
@@ -51,6 +52,9 @@ export class User {
         inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
     })
     roles: Role[];
+
+    @ManyToMany(() => Team, (team) => team.members)
+    teams: Team[];
 
     @CreateDateColumn()
     createdAt: Date;
